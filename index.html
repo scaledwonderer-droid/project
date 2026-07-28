@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FF14 Job Emblem Frame Preview</title>
+<style>
+  :root {
+    --bg: #0a0d14;
+    --panel: #111826;
+    --panel2: #0d1420;
+    --line: rgba(150, 210, 255, 0.16);
+    --text: #e9f6ff;
+    --sub: #9eb8c8;
+    --accent: #67d3ff;
+    --danger: #ff6f7b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(103, 211, 255, 0.08), transparent 30%),
+      radial-gradient(circle at 80% 10%, rgba(130, 110, 255, 0.08), transparent 28%),
+      linear-gradient(180deg, #0a0d14 0%, #07090f 100%);
+    color: var(--text);
+  }
+
+  .wrap {
+    width: min(1480px, calc(100% - 32px));
+    margin: 20px auto 40px;
+  }
+
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .titlebox {
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(17,24,38,0.9), rgba(10,14,22,0.88));
+    border-radius: 14px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset, 0 14px 30px rgba(0,0,0,0.28);
+  }
+
+  .titlebox h1 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .titlebox p {
+    margin: 0;
+    color: var(--sub);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .panel {
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(17,24,38,0.92), rgba(10,14,22,0.92));
+    border-radius: 14px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.26);
+  }
+
+  .controls {
+    padding: 16px;
+    position: sticky;
+    top: 16px;
+  }
+
+  .panel h2 {
+    margin: 0 0 14px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #dff4ff;
+  }
+
+  .grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .field label {
+    font-size: 12px;
+    color: var(--sub);
+    letter-spacing: 0.04em;
+  }
+
+  select,
+  input[type="range"],
+  input[type="file"],
+  button {
+    width: 100%;
+  }
+
+  select,
+  input[type="file"] {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(160, 220, 255, 0.14);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  input[type="range"] {
+    accent-color: var(--accent);
+  }
+
+  .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .row3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .checkrow {
+    display: grid;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(160, 220, 255, 0.08);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .check input {
+    width: auto;
+    accent-color: var(--accent);
+  }
+
+  .btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  button {
+    cursor: pointer;
+    border: 1px solid rgba(160, 220, 255, 0.16);
+    color: var(--text);
+    background: linear-gradient(180deg, rgba(103,211,255,0.10), rgba(103,211,255,0.04));
+    padding: 11px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  button:hover {
+    background: linear-gradient(180deg, rgba(103,211,255,0.16), rgba(103,211,255,0.07));
+  }
+
+  button.secondary {
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  }
+
+  button.secondary:hover {
+    background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.05));
+  }
+
+  .previewpanel {
+    padding: 14px;
+  }
+
+  .canvasbox {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(160, 220, 255, 0.16);
+    background: #05070c;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    background: #000;
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  .meta .info {
+    color: var(--sub);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(160, 220, 255, 0.18);
+    background: rgba(255,255,255,0.03);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .accentdot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+
+  .smallnote {
+    margin-top: 12px;
+    color: var(--sub);
+    font-size: 12px;
+    line-height: 1.75;
+    padding-top: 12px;
+    border-top: 1px solid rgba(160, 220, 255, 0.08);
+  }
+
+  .value {
+    color: var(--text);
+    font-size: 12px;
+  }
+
+  .danger {
+    color: #ffb4ba;
+  }
+
+  @media (max-width: 1100px) {
+    .layout {
+      grid-template-columns: 1fr;
+    }
+    .controls {
+      position: static;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="titlebox">
+        <h1>FF14 横型IDビジュアル動画ジェネレータ — ジョブエンブレム外装 試作</h1>
+        <p>
+          これは<strong>外装素材の表示順・サイズ・透明度・回転・起動/待機/終了アニメーション</strong>を確認するための試作です。<br>
+          `ff14-job-emblem-frames` フォルダを `index.html` と同じ階層に置いてください。ジョブマーク本体は素材に含まれないため、必要なら別PNGをアップロードして中央へ重ねられます。
+        </p>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="panel controls">
+        <h2>CONTROL</h2>
+
+        <div class="grid">
+          <div class="field">
+            <label for="genreSelect">ジャンル</label>
+            <select id="genreSelect">
+              <option value="tank">TANK</option>
+              <option value="healer">HEALER</option>
+              <option value="melee">MELEE DPS</option>
+              <option value="physical-ranged">PHYSICAL RANGED DPS</option>
+              <option value="magical-ranged">MAGICAL RANGED DPS</option>
+              <option value="crafter">CRAFTER</option>
+              <option value="gatherer">GATHERER</option>
+            </select>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="positionSelect">配置位置</label>
+              <select id="positionSelect">
+                <option value="right">右側配置</option>
+                <option value="left">左側配置</option>
+                <option value="center">中央配置</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="sizeSelect">基準サイズ</label>
+              <select id="sizeSelect">
+                <option value="960">小型 960px</option>
+                <option value="1040" selected>標準 1040px</option>
+                <option value="1120">大型 1120px</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="frameOpacity">外装透明度補正 <span class="value" id="frameOpacityValue">1.00</span></label>
+              <input id="frameOpacity" type="range" min="0.50" max="1.40" step="0.01" value="1.00" />
+            </div>
+            <div class="field">
+              <label for="glowBoost">発光補正 <span class="value" id="glowBoostValue">1.00</span></label>
+              <input id="glowBoost" type="range" min="0.50" max="1.80" step="0.01" value="1.00" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="bgInput">背景SSアップロード</label>
+              <input id="bgInput" type="file" accept="image/*" />
+            </div>
+            <div class="field">
+              <label for="jobMarkInput">ジョブマークPNGアップロード</label>
+              <input id="jobMarkInput" type="file" accept="image/*" />
+            </div>
+          </div>
+
+          <div class="checkrow">
+            <label class="check">
+              <input type="checkbox" id="showGuides" checked />
+              <span>情報UIガイド表示</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="showOverlayText" checked />
+              <span>仮UIテキスト表示</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="showJobMark" checked />
+              <span>中央ジョブマーク表示</span>
+            </label>
+          </div>
+
+          <div class="btns">
+            <button id="playPauseBtn">一時停止</button>
+            <button id="restartBtn" class="secondary">10秒ループを先頭から再生</button>
+          </div>
+
+          <div class="smallnote">
+            <strong>この試作で確認できること</strong><br>
+            ・レイヤー順<br>
+            ・標準サイズと配置位置<br>
+            ・ジャンル別の回転方向と速度差<br>
+            ・起動 → 待機 → 終了の10秒ループ<br>
+            ・glow-mask の着色発光<br><br>
+            <span class="danger">※ preview.png は使っていません。</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel previewpanel">
+        <div class="canvasbox">
+          <canvas id="previewCanvas" width="1920" height="1080"></canvas>
+        </div>
+
+        <div class="meta">
+          <div class="info" id="statusText">
+            読み込み待機中…
+          </div>
+          <div class="pill">
+            <span class="accentdot" id="accentDot"></span>
+            <span id="accentLabel">ACCENT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const ASSET_ROOT = "./ff14-job-emblem-frames";
+  const CANVAS_W = 1920;
+  const CANVAS_H = 1080;
+  const LOOP_MS = 10000;
+
+  const canvas = document.getElementById("previewCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const genreSelect = document.getElementById("genreSelect");
+  const positionSelect = document.getElementById("positionSelect");
+  const sizeSelect = document.getElementById("sizeSelect");
+  const frameOpacitySlider = document.getElementById("frameOpacity");
+  const glowBoostSlider = document.getElementById("glowBoost");
+  const bgInput = document.getElementById("bgInput");
+  const jobMarkInput = document.getElementById("jobMarkInput");
+  const showGuides = document.getElementById("showGuides");
+  const showOverlayText = document.getElementById("showOverlayText");
+  const showJobMark = document.getElementById("showJobMark");
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  const restartBtn = document.getElementById("restartBtn");
+  const statusText = document.getElementById("statusText");
+  const accentDot = document.getElementById("accentDot");
+  const accentLabel = document.getElementById("accentLabel");
+  const frameOpacityValue = document.getElementById("frameOpacityValue");
+  const glowBoostValue = document.getElementById("glowBoostValue");
+
+  const BASE_LAYER_ALPHA = {
+    frameBack: 0.16,
+    ringOuter: 0.34,
+    ringMiddle: 0.26,
+    ringInner: 0.46,
+    parts: 0.48,
+    markings: 0.38,
+    effects: 0.42,
+    jobMark: 0.82
+  };
+
+  const POSITIONS = {
+    left: { x: 720, y: 540 },
+    right: { x: 1200, y: 540 },
+    center: { x: 960, y: 540 }
+  };
+
+  const GENRES = {
+    "tank": {
+      label: "TANK",
+      accent: "#56CFFF",
+      outerDir: 1,
+      outerPeriod: 28,
+      innerKickDeg: -18,
+      pulsePeriod: 2400,
+      hasMiddle: false
+    },
+    "healer": {
+      label: "HEALER",
+      accent: "#63E6C1",
+      outerDir: 1,
+      outerPeriod: 24,
+      middleDir: -1,
+      middlePeriod: 32,
+      pulsePeriod: 2800,
+      hasMiddle: true
+    },
+    "melee": {
+      label: "MELEE DPS",
+      accent: "#FF6558",
+      outerDir: 1,
+      outerPeriod: 18,
+      innerKickDeg: 24,
+      pulsePeriod: 2100,
+      hasMiddle: false
+    },
+    "physical-ranged": {
+      label: "PHYSICAL RANGED DPS",
+      accent: "#B7EE45",
+      outerDir: -1,
+      outerPeriod: 22,
+      pulsePeriod: 2600,
+      hasMiddle: false
+    },
+    "magical-ranged": {
+      label: "MAGICAL RANGED DPS",
+      accent: "#9A78FF",
+      outerDir: 1,
+      outerPeriod: 20,
+      middleDir: -1,
+      middlePeriod: 27,
+      pulsePeriod: 3200,
+      hasMiddle: true
+    },
+    "crafter": {
+      label: "CRAFTER",
+      accent: "#FFB33F",
+      outerDir: 1,
+      outerPeriod: 30,
+      innerKickDeg: -12,
+      pulsePeriod: 3500,
+      hasMiddle: false
+    },
+    "gatherer": {
+      label: "GATHERER",
+      accent: "#4DDBB5",
+      outerDir: -1,
+      outerPeriod: 26,
+      pulsePeriod: 4200,
+      hasMiddle: false
+    }
+  };
+
+  const TIMINGS = {
+    frameBack: { inStart: 350, inEnd: 800, outStart: 8500, outEnd: 9550 },
+    ringOuter: { inStart: 550, inEnd: 1400, outStart: 8400, outEnd: 9500 },
+    ringMiddle: { inStart: 800, inEnd: 1750, outStart: 8350, outEnd: 9450 },
+    ringInner: { inStart: 800, inEnd: 1750, outStart: 8300, outEnd: 9400 },
+    parts: { inStart: 1100, inEnd: 2200, outStart: 8200, outEnd: 9300 },
+    markings: { inStart: 1100, inEnd: 2200, outStart: 8200, outEnd: 9300 },
+    effects: { inStart: 1450, inEnd: 2600, outStart: 8100, outEnd: 9200 },
+    glow: { inStart: 1500, inEnd: 2800, outStart: 8200, outEnd: 9400 },
+    jobMark: { inStart: 2200, inEnd: 2800, outStart: 8600, outEnd: 9800 }
+  };
+
+  const cache = {};
+  let currentGenre = genreSelect.value;
+  let bgImage = null;
+  let jobMarkImage = null;
+  let isPlaying = true;
+  let startTime = performance.now();
+  let pausedElapsed = 0;
+  let rafId = null;
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - clamp01(t), 3);
+  }
+
+  function easeInCubic(t) {
+    return Math.pow(clamp01(t), 3);
+  }
+
+  function easeInOutSine(t) {
+    return -(Math.cos(Math.PI * clamp01(t)) - 1) / 2;
+  }
+
+  function clamp01(v) {
+    return Math.max(0, Math.min(1, v));
+  }
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function degToRad(deg) {
+    return deg * Math.PI / 180;
+  }
+
+  function phaseEnvelope(ms, timing) {
+    const inP = ms <= timing.inStart ? 0
+      : ms >= timing.inEnd ? 1
+      : easeOutCubic((ms - timing.inStart) / (timing.inEnd - timing.inStart));
+
+    const outP = ms <= timing.outStart ? 1
+      : ms >= timing.outEnd ? 0
+      : 1 - easeInCubic((ms - timing.outStart) / (timing.outEnd - timing.outStart));
+
+    return clamp01(inP * outP);
+  }
+
+  function pulse(ms, period, min = 0.0, max = 1.0, phase = 0) {
+    const s = (Math.sin(((ms + phase) / period) * Math.PI * 2) + 1) * 0.5;
+    return lerp(min, max, s);
+  }
+
+  function getPosition() {
+    return POSITIONS[positionSelect.value] || POSITIONS.right;
+  }
+
+  function getSize() {
+    return Number(sizeSelect.value || 1040);
+  }
+
+  function setStatus(text) {
+    statusText.innerHTML = text;
+  }
+
+  function updateAccentUI() {
+    const cfg = GENRES[currentGenre];
+    accentDot.style.background = cfg.accent;
+    accentDot.style.boxShadow = `0 0 12px ${cfg.accent}`;
+    accentLabel.textContent = cfg.label;
+    document.documentElement.style.setProperty("--accent", cfg.accent);
+  }
+
+  function createImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("画像読込失敗: " + url));
+      img.src = url;
+    });
+  }
+
+  async function loadGenreAssets(genre) {
+    if (cache[genre]?.loaded) return cache[genre];
+
+    const cfg = GENRES[genre];
+    const base = `${ASSET_ROOT}/${genre}/${genre}`;
+
+    const paths = {
+      frameBack: `${base}-frame-back.png`,
+      ringOuter: `${base}-ring-outer.png`,
+      ringInner: `${base}-ring-inner.png`,
+      parts: `${base}-parts.png`,
+      markings: `${base}-markings.png`,
+      effects: `${base}-effects.png`,
+      glowMask: `${base}-glow-mask.png`,
+      ringMiddle: cfg.hasMiddle ? `${base}-ring-middle.png` : null
+    };
+
+    const result = { loaded: false, images: {}, glowTintCache: {} };
+    const entries = Object.entries(paths).filter(([, path]) => !!path);
+
+    await Promise.all(entries.map(async ([key, path]) => {
+      result.images[key] = await createImage(path);
+    }));
+
+    result.loaded = true;
+    cache[genre] = result;
+    return result;
+  }
+
+  function makeTintedCanvas(maskImg, color) {
+    const off = document.createElement("canvas");
+    off.width = maskImg.width;
+    off.height = maskImg.height;
+    const octx = off.getContext("2d");
+
+    octx.clearRect(0, 0, off.width, off.height);
+    octx.drawImage(maskImg, 0, 0);
+    octx.globalCompositeOperation = "source-in";
+    octx.fillStyle = color;
+    octx.fillRect(0, 0, off.width, off.height);
+    octx.globalCompositeOperation = "source-over";
+    return off;
+  }
+
+  function getTintedGlowCanvas(genre, color) {
+    const item = cache[genre];
+    if (!item || !item.images.glowMask) return null;
+    if (!item.glowTintCache[color]) {
+      item.glowTintCache[color] = makeTintedCanvas(item.images.glowMask, color);
+    }
+    return item.glowTintCache[color];
+  }
+
+  function drawCoverImage(img, alpha = 1) {
+    const iw = img.width;
+    const ih = img.height;
+    const scale = Math.max(CANVAS_W / iw, CANVAS_H / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const dx = (CANVAS_W - dw) / 2;
+    const dy = (CANVAS_H - dh) / 2;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  function drawDefaultBackground(ms) {
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+    const g = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+    g.addColorStop(0, "#08101a");
+    g.addColorStop(1, "#03060b");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    const cx = CANVAS_W * 0.5;
+    const cy = CANVAS_H * 0.5;
+
+    const r1 = ctx.createRadialGradient(cx, cy, 80, cx, cy, 840);
+    r1.addColorStop(0, "rgba(110, 190, 255, 0.10)");
+    r1.addColorStop(0.45, "rgba(85, 140, 220, 0.06)");
+    r1.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = r1;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(160, 220, 255, 0.07)";
+    ctx.lineWidth = 1;
+
+    const offsetX = ((ms * 0.01) % 80);
+    const offsetY = ((ms * 0.006) % 80);
+
+    for (let x = -80 + offsetX; x < CANVAS_W + 80; x += 80) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, CANVAS_H);
+      ctx.stroke();
+    }
+    for (let y = -80 + offsetY; y < CANVAS_H + 80; y += 80) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(CANVAS_W, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = "rgba(6, 10, 16, 0.28)";
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.restore();
+  }
+
+  function drawLayer(img, cx, cy, size, rotationRad = 0, alpha = 1, scale = 1, dx = 0, dy = 0) {
+    if (!img || alpha <= 0) return;
+    const w = size * scale;
+    const h = size * scale;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx + dx, cy + dy);
+    ctx.rotate(rotationRad);
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+
+  function drawTintedGlow(glowCanvas, cx, cy, size, rotationRad, alpha, glowBoost) {
+    if (!glowCanvas || alpha <= 0) return;
+
+    const w = size;
+    const h = size;
+    const boost = glowBoost;
+
+    // 発光芯
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.17 * alpha * boost;
+    ctx.filter = "blur(0px)";
+    ctx.translate(cx, cy);
+    ctx.rotate(rotationRad);
+    ctx.drawImage(glowCanvas, -w / 2, -h / 2, w, h);
+    ctx.restore();
+
+    // 内側発光
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.14 * alpha * boost;
+    ctx.filter = "blur(10px)";
+    ctx.translate(cx, cy);
+    ctx.rotate(rotationRad);
+    ctx.drawImage(glowCanvas, -w / 2, -h / 2, w, h);
+    ctx.restore();
+
+    // 外側発光
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.08 * alpha * boost;
+    ctx.filter = "blur(24px)";
+    ctx.translate(cx, cy);
+    ctx.rotate(rotationRad);
+    ctx.drawImage(glowCanvas, -w / 2, -h / 2, w, h);
+    ctx.restore();
+
+    ctx.filter = "none";
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  function drawEffectsSpecial(genre, img, cx, cy, size, ms, alpha) {
+    if (!img || alpha <= 0) return;
+
+    // 基本の全体表示
+    drawLayer(img, cx, cy, size, 0, alpha * 0.38);
+
+    const t = ms % LOOP_MS;
+
+    if (genre === "melee") {
+      const p = ((ms % 1800) / 1800);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(degToRad(-32));
+      ctx.beginPath();
+      const sweepX = lerp(-size * 0.85, size * 0.85, p);
+      ctx.rect(sweepX - size * 0.11, -size, size * 0.22, size * 2);
+      ctx.clip();
+      ctx.globalAlpha = alpha * 0.72;
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    }
+
+    if (genre === "physical-ranged") {
+      const p = ((ms % 2600) / 2600);
+      const sweepX = lerp(-size * 0.32, size * 0.32, p);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.beginPath();
+      ctx.rect(sweepX - size * 0.06, -size / 2, size * 0.12, size);
+      ctx.clip();
+      ctx.globalAlpha = alpha * 0.78;
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    }
+
+    if (genre === "gatherer") {
+      const p = ((ms % 4200) / 4200);
+      const start = degToRad(-90 + p * 360);
+      const end = start + degToRad(22);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, size * 0.48, start, end);
+      ctx.closePath();
+      ctx.clip();
+      ctx.globalAlpha = alpha * 0.80;
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    }
+
+    if (genre === "healer") {
+      const breathe = pulse(ms, 2800, 0.90, 1.04);
+      drawLayer(img, cx, cy, size, 0, alpha * 0.30, breathe);
+    }
+
+    if (genre === "magical-ranged") {
+      const arcP = ((ms % 3200) / 3200);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(degToRad(arcP * 360));
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.42, degToRad(-30), degToRad(30));
+      ctx.lineWidth = size * 0.08;
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.stroke();
+      ctx.clip();
+      ctx.globalAlpha = alpha * 0.60;
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    }
+
+    if (genre === "crafter") {
+      const p = ((ms % 3500) / 3500);
+      const clipW = lerp(size * 0.12, size * 0.72, easeInOutSine(p));
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.beginPath();
+      ctx.rect(-clipW / 2, -size / 2, clipW, size);
+      ctx.clip();
+      ctx.globalAlpha = alpha * 0.52;
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    }
+
+    if (genre === "tank") {
+      const flash = pulse(ms, 2400, 0.12, 0.38);
+      drawLayer(img, cx, cy, size, 0, alpha * flash);
+    }
+  }
+
+  function drawJobMark(cx, cy, alpha) {
+    if (!showJobMark.checked || alpha <= 0) return;
+
+    const size = 250;
+    const scale = lerp(1.08, 1.0, phaseEnvelope(getLoopMs(), TIMINGS.jobMark));
+    const drawSize = size * scale;
+
+    if (jobMarkImage) {
+      const iw = jobMarkImage.width;
+      const ih = jobMarkImage.height;
+      const ratio = Math.min(drawSize / iw, drawSize / ih);
+      const dw = iw * ratio;
+      const dh = ih * ratio;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.shadowColor = "rgba(0,0,0,0.35)";
+      ctx.shadowBlur = 10;
+      ctx.drawImage(jobMarkImage, cx - dw / 2, cy - dh / 2, dw, dh);
+      ctx.restore();
+      return;
+    }
+
+    // 仮プレースホルダー
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.globalAlpha = alpha;
+
+    ctx.strokeStyle = "rgba(224, 244, 255, 0.92)";
+    ctx.fillStyle = "rgba(224, 244, 255, 0.08)";
+    ctx.lineWidth = 4;
+
+    ctx.beginPath();
+    ctx.moveTo(0, -drawSize * 0.42);
+    ctx.lineTo(drawSize * 0.22, -drawSize * 0.12);
+    ctx.lineTo(drawSize * 0.42, 0);
+    ctx.lineTo(drawSize * 0.22, drawSize * 0.12);
+    ctx.lineTo(0, drawSize * 0.42);
+    ctx.lineTo(-drawSize * 0.22, drawSize * 0.12);
+    ctx.lineTo(-drawSize * 0.42, 0);
+    ctx.lineTo(-drawSize * 0.22, -drawSize * 0.12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = "600 24px Segoe UI, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(236, 247, 255, 0.92)";
+    ctx.fillText("JOB", 0, -12);
+    ctx.fillText("MARK", 0, 18);
+    ctx.restore();
+  }
+
+  function drawGuides(position) {
+    if (!showGuides.checked) return;
+
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(160, 220, 255, 0.22)";
+    ctx.setLineDash([8, 8]);
+
+    // Identity zone
+    ctx.strokeRect(92, 76, 520, 210);
+
+    // Origin zone
+    ctx.strokeRect(110, 770, 520, 180);
+
+    // Analysis zone
+    ctx.strokeRect(1288, 164, 480, 300);
+
+    // Access zone
+    ctx.strokeRect(1200, 802, 600, 182);
+
+    // Center line
+    ctx.beginPath();
+    ctx.moveTo(960, 0);
+    ctx.lineTo(960, 1080);
+    ctx.stroke();
+
+    // Emblem center
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.arc(position.x, position.y, 452, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Job mark safe zone
+    ctx.beginPath();
+    ctx.arc(position.x, position.y, 178, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawOverlayTextBlock() {
+    if (!showOverlayText.checked) return;
+
+    ctx.save();
+    ctx.fillStyle = "rgba(235, 247, 255, 0.92)";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+
+    // Identity
+    ctx.font = "600 18px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillText("IDENTITY", 110, 88);
+
+    ctx.font = "700 42px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(236, 246, 255, 0.96)";
+    ctx.fillText("CHARACTER NAME", 110, 120);
+
+    ctx.font = "600 18px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillText("MAIN CLASS", 110, 190);
+
+    ctx.font = "700 28px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(236, 246, 255, 0.94)";
+    ctx.fillText("DARK KNIGHT", 110, 220);
+
+    // Origin
+    ctx.font = "600 18px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillText("ORIGIN", 110, 782);
+
+    ctx.font = "700 22px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(236, 246, 255, 0.94)";
+    ctx.fillText("MANA / IXION", 110, 820);
+    ctx.fillText("AU RA / RAEN", 110, 856);
+
+    // Analysis
+    ctx.font = "600 18px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillText("ANALYSIS", 1300, 176);
+
+    ctx.font = "600 18px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillText("ACTIVITY CLASS", 1300, 214);
+
+    ctx.font = "700 56px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(236, 246, 255, 0.96)";
+    ctx.fillText("08 / 10", 1300, 248);
+
+    ctx.font = "700 30px Segoe UI, sans-serif";
+    ctx.fillText("RESIDENT", 1300, 320);
+
+    ctx.font = "600 18px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillText("COMBAT", 1300, 384);
+    ctx.fillText("LIFE", 1668, 384);
+
+    // Gauge
+    ctx.strokeStyle = "rgba(210, 240, 255, 0.52)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(1368, 392);
+    ctx.lineTo(1630, 392);
+    ctx.stroke();
+
+    const grad = ctx.createLinearGradient(1368, 0, 1630, 0);
+    grad.addColorStop(0, "rgba(255,108,108,0.95)");
+    grad.addColorStop(0.5, "rgba(230,240,255,0.86)");
+    grad.addColorStop(1, "rgba(103,229,188,0.95)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(1460, 386, 118, 12);
+
+    // Access
+    ctx.font = "600 18px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillText("ACCESS", 1210, 814);
+
+    ctx.font = "700 22px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(236, 246, 255, 0.95)";
+    ctx.fillText("DI1-7K4M-P8Q2-X9D6-C3", 1210, 850);
+
+    // QR placeholder
+    ctx.strokeStyle = "rgba(220, 240, 255, 0.55)";
+    ctx.strokeRect(1638, 824, 120, 120);
+    ctx.font = "600 16px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(220, 240, 255, 0.82)";
+    ctx.fillText("QR", 1686, 875);
+
+    // Credit
+    ctx.font = "500 16px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(220, 236, 245, 0.76)";
+    ctx.fillText("Created by 鱗の旅人", 110, 1024);
+    ctx.fillText("© SQUARE ENIX", 110, 1048);
+
+    ctx.restore();
+  }
+
+  function getLoopMs() {
+    if (isPlaying) {
+      return (performance.now() - startTime) % LOOP_MS;
+    }
+    return pausedElapsed % LOOP_MS;
+  }
+
+  function drawScene(ms) {
+    const cfg = GENRES[currentGenre];
+    const assets = cache[currentGenre];
+    const pos = getPosition();
+    const size = getSize();
+    const frameOpacityMul = Number(frameOpacitySlider.value);
+    const glowBoost = Number(glowBoostSlider.value);
+
+    if (bgImage) {
+      drawCoverImage(bgImage, 1);
+      ctx.save();
+      ctx.fillStyle = "rgba(2, 6, 10, 0.18)";
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+      ctx.restore();
+    } else {
+      drawDefaultBackground(ms);
+    }
+
+    drawGuides(pos);
+
+    const outerAngle = degToRad(((ms / 1000) / cfg.outerPeriod) * 360 * cfg.outerDir);
+
+    let middleAngle = 0;
+    if (cfg.hasMiddle) {
+      middleAngle = degToRad(((ms / 1000) / cfg.middlePeriod) * 360 * cfg.middleDir);
+    }
+
+    let innerAngle = 0;
+    const innerEnv = phaseEnvelope(ms, TIMINGS.ringInner);
+    const startupInnerProgress = clamp01((ms - 900) / 950);
+
+    if (currentGenre === "tank") {
+      innerAngle = degToRad(lerp(cfg.innerKickDeg || 0, 0, easeOutCubic(startupInnerProgress)));
+      innerAngle += degToRad(Math.sin(ms / 800) * 2.0) * innerEnv * 0.18;
+    } else if (currentGenre === "melee") {
+      innerAngle = degToRad(lerp(cfg.innerKickDeg || 0, 0, easeOutCubic(startupInnerProgress)));
+      innerAngle += degToRad(Math.sin(ms / 450) * 1.6) * innerEnv;
+    } else if (currentGenre === "magical-ranged") {
+      innerAngle = degToRad(lerp(-30, 0, easeOutCubic(startupInnerProgress)));
+      innerAngle += degToRad(Math.sin(ms / 900) * 4.5) * innerEnv;
+    } else if (currentGenre === "crafter") {
+      innerAngle = degToRad(lerp(cfg.innerKickDeg || 0, 0, easeOutCubic(startupInnerProgress)));
+    } else {
+      innerAngle = 0;
+    }
+
+    const frameBackEnv = phaseEnvelope(ms, TIMINGS.frameBack);
+    const outerEnv = phaseEnvelope(ms, TIMINGS.ringOuter);
+    const middleEnv = phaseEnvelope(ms, TIMINGS.ringMiddle);
+    const innerEnv2 = phaseEnvelope(ms, TIMINGS.ringInner);
+    const partsEnv = phaseEnvelope(ms, TIMINGS.parts);
+    const markingsEnv = phaseEnvelope(ms, TIMINGS.markings);
+    const effectsEnv = phaseEnvelope(ms, TIMINGS.effects);
+    const glowEnv = phaseEnvelope(ms, TIMINGS.glow);
+    const jobMarkEnv = phaseEnvelope(ms, TIMINGS.jobMark);
+
+    const pulseValue = pulse(ms, cfg.pulsePeriod, 0.84, 1.12);
+    const healerBreathe = currentGenre === "healer" ? pulse(ms, 2800, 1.0, 1.03) : 1.0;
+
+    const partsOffset = (() => {
+      const sp = clamp01((ms - 1100) / 900);
+      if (currentGenre === "tank") return { dx: 0, dy: lerp(20, 0, easeOutCubic(sp)) };
+      if (currentGenre === "melee") return { dx: lerp(-18, 0, easeOutCubic(sp)), dy: lerp(12, 0, easeOutCubic(sp)) };
+      if (currentGenre === "physical-ranged") return { dx: lerp(16, 0, easeOutCubic(sp)), dy: 0 };
+      if (currentGenre === "crafter") return { dx: 0, dy: lerp(-10, 0, easeOutCubic(sp)) };
+      if (currentGenre === "gatherer") return { dx: 0, dy: lerp(12, 0, easeOutCubic(sp)) };
+      return { dx: 0, dy: 0 };
+    })();
+
+    const item = assets.images;
+    const glowCanvas = getTintedGlowCanvas(currentGenre, cfg.accent);
+
+    // --- draw layers in正式順 ---
+    drawLayer(
+      item.frameBack,
+      pos.x, pos.y, size,
+      0,
+      BASE_LAYER_ALPHA.frameBack * frameBackEnv * frameOpacityMul
+    );
+
+    drawLayer(
+      item.ringOuter,
+      pos.x, pos.y, size,
+      outerAngle,
+      BASE_LAYER_ALPHA.ringOuter * outerEnv * frameOpacityMul
+    );
+
+    if (cfg.hasMiddle && item.ringMiddle) {
+      drawLayer(
+        item.ringMiddle,
+        pos.x, pos.y, size,
+        middleAngle,
+        BASE_LAYER_ALPHA.ringMiddle * middleEnv * frameOpacityMul
+      );
+    }
+
+    drawLayer(
+      item.ringInner,
+      pos.x, pos.y, size,
+      innerAngle,
+      BASE_LAYER_ALPHA.ringInner * innerEnv2 * frameOpacityMul,
+      healerBreathe
+    );
+
+    drawLayer(
+      item.parts,
+      pos.x, pos.y, size,
+      0,
+      BASE_LAYER_ALPHA.parts * partsEnv * frameOpacityMul,
+      1,
+      partsOffset.dx,
+      partsOffset.dy
+    );
+
+    drawLayer(
+      item.markings,
+      pos.x, pos.y, size,
+      0,
+      BASE_LAYER_ALPHA.markings * markingsEnv * frameOpacityMul
+    );
+
+    drawEffectsSpecial(
+      currentGenre,
+      item.effects,
+      pos.x, pos.y, size,
+      ms,
+      BASE_LAYER_ALPHA.effects * effectsEnv * frameOpacityMul
+    );
+
+    drawTintedGlow(
+      glowCanvas,
+      pos.x, pos.y, size,
+      0,
+      glowEnv * pulseValue,
+      glowBoost
+    );
+
+    drawJobMark(pos.x, pos.y, BASE_LAYER_ALPHA.jobMark * jobMarkEnv);
+
+    drawOverlayTextBlock();
+  }
+
+  async function ensureCurrentGenreLoaded() {
+    setStatus("素材を読み込み中…");
+    try {
+      await loadGenreAssets(currentGenre);
+      updateAccentUI();
+      setStatus(`
+        ジャンル: <strong>${GENRES[currentGenre].label}</strong> /
+        配置: <strong>${positionSelect.options[positionSelect.selectedIndex].text}</strong> /
+        サイズ: <strong>${sizeSelect.value}px</strong><br>
+        表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark
+      `);
+    } catch (err) {
+      console.error(err);
+      setStatus(`<span class="danger">素材読込エラー:</span> ${err.message}`);
+    }
+  }
+
+  function renderLoop() {
+    const ms = getLoopMs();
+    drawScene(ms);
+    rafId = requestAnimationFrame(renderLoop);
+  }
+
+  function restartLoop() {
+    if (isPlaying) {
+      startTime = performance.now();
+    } else {
+      pausedElapsed = 0;
+      startTime = performance.now();
+    }
+  }
+
+  function togglePlayPause() {
+    if (isPlaying) {
+      pausedElapsed = getLoopMs();
+      isPlaying = false;
+      playPauseBtn.textContent = "再生";
+    } else {
+      startTime = performance.now() - pausedElapsed;
+      isPlaying = true;
+      playPauseBtn.textContent = "一時停止";
+    }
+  }
+
+  function loadImageFromFile(file, cb) {
+    if (!file) {
+      cb(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => cb(img);
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  genreSelect.addEventListener("change", async () => {
+    currentGenre = genreSelect.value;
+    await ensureCurrentGenreLoaded();
+  });
+
+  positionSelect.addEventListener("change", ensureCurrentGenreLoaded);
+  sizeSelect.addEventListener("change", ensureCurrentGenreLoaded);
+
+  frameOpacitySlider.addEventListener("input", () => {
+    frameOpacityValue.textContent = Number(frameOpacitySlider.value).toFixed(2);
+  });
+
+  glowBoostSlider.addEventListener("input", () => {
+    glowBoostValue.textContent = Number(glowBoostSlider.value).toFixed(2);
+  });
+
+  bgInput.addEventListener("change", () => {
+    loadImageFromFile(bgInput.files[0], img => {
+      bgImage = img;
+    });
+  });
+
+  jobMarkInput.addEventListener("change", () => {
+    loadImageFromFile(jobMarkInput.files[0], img => {
+      jobMarkImage = img;
+    });
+  });
+
+  playPauseBtn.addEventListener("click", togglePlayPause);
+  restartBtn.addEventListener("click", restartLoop);
+
+  async function init() {
+    frameOpacityValue.textContent = Number(frameOpacitySlider.value).toFixed(2);
+    glowBoostValue.textContent = Number(glowBoostSlider.value).toFixed(2);
+    await ensureCurrentGenreLoaded();
+    renderLoop();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
