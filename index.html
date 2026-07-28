@@ -497,6 +497,63 @@
   }
 
   .details-grid > .field:has(.subjob-box),
+
+  .analysis-result-panel {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border: 1px solid rgba(113, 199, 236, 0.28);
+    background: rgba(4, 15, 24, 0.72);
+    border-radius: 10px;
+  }
+  .analysis-result-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .analysis-result-class {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    color: #eef9ff;
+  }
+  .analysis-result-score {
+    font-size: 12px;
+    color: #8fc8e2;
+    font-variant-numeric: tabular-nums;
+  }
+  .analysis-result-gauge {
+    position: relative;
+    height: 12px;
+    border: 1px solid rgba(190, 228, 245, .4);
+    background: linear-gradient(90deg, rgba(255,108,108,.65), rgba(225,238,248,.55) 50%, rgba(103,229,188,.65));
+    border-radius: 999px;
+  }
+  .analysis-result-marker {
+    position: absolute;
+    top: -5px;
+    width: 3px;
+    height: 20px;
+    background: #f5fbff;
+    box-shadow: 0 0 8px rgba(170,225,255,.9);
+    transform: translateX(-50%);
+  }
+  .analysis-result-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 7px;
+    color: #7faec4;
+    font-size: 11px;
+    letter-spacing: .08em;
+  }
+  .analysis-breakdown {
+    margin-top: 10px;
+    color: #8fb1c1;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
   .details-grid > .field:has(.playstyle-panel) {
     grid-column: 1 / -1;
   }
@@ -696,7 +753,16 @@
 <button class="secondary compact-button" id="clearPlayStylesBtn" type="button">全解除</button>
 </div>
 <div class="selection-summary" id="playStyleSummary">未選択</div>
-<div class="hint">最低3項目、推奨5〜10項目、最大15項目。分析計算は次の段階で実装します。</div>
+<div class="hint">最低3項目、推奨5〜10項目、最大15項目。同系統の項目は選択順に減衰して計算します。</div>
+<div class="analysis-result-panel" id="analysisResultPanel">
+  <div class="analysis-result-head">
+    <div class="analysis-result-class" id="analysisResultClass">未判定</div>
+    <div class="analysis-result-score" id="analysisResultScore">3項目以上選択してください</div>
+  </div>
+  <div class="analysis-result-gauge"><div class="analysis-result-marker" id="analysisResultMarker" style="left:50%"></div></div>
+  <div class="analysis-result-axis"><span>COMBAT</span><span>LIFE</span></div>
+  <div class="analysis-breakdown" id="analysisBreakdown">選択内容に応じて分析結果がここへ表示されます。</div>
+</div>
 </div></div></div>
 </div>
 <script>
@@ -719,6 +785,10 @@
   const playStyleCount = document.getElementById("playStyleCount");
   const playStyleSummary = document.getElementById("playStyleSummary");
   const clearPlayStylesBtn = document.getElementById("clearPlayStylesBtn");
+  const analysisResultClass = document.getElementById("analysisResultClass");
+  const analysisResultScore = document.getElementById("analysisResultScore");
+  const analysisResultMarker = document.getElementById("analysisResultMarker");
+  const analysisBreakdown = document.getElementById("analysisBreakdown");
   const positionSelect = document.getElementById("positionSelect");
   const sizeSelect = document.getElementById("sizeSelect");
   const frameOpacitySlider = document.getElementById("frameOpacity");
@@ -772,7 +842,8 @@
     race: "Au Ra",
     clan: "Raen",
     subJobs: new Set(),
-    playStyles: new Set()
+    playStyles: new Set(),
+    analysis: { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [] }
   };
 
   const PLAY_STYLE_MIN = 3;
@@ -814,6 +885,140 @@
       items: ["カジュアル", "まったり"]
     }
   ];
+
+  const PLAY_STYLE_RULES = {
+    "メインストーリー": { score: -1, family: "daily-combat" },
+    "サブクエスト": { score: 0, family: "collection-entertainment" },
+    "カジュアル": { score: 1, family: "independent" },
+    "F.A.T.E.": { score: -3, family: "daily-combat" },
+    "高難度": { score: -10, family: "high-end-raid" },
+    "レイド": { score: -7, family: "high-end-raid" },
+    "討滅戦": { score: -5, family: "high-end-raid" },
+    "アライアンスレイド": { score: -5, family: "high-end-raid" },
+    "PvP": { score: -5, family: "pvp" },
+    "フロントライン": { score: -5, family: "pvp" },
+    "クリスタルコンフリクト": { score: -6, family: "pvp" },
+    "ディープダンジョン": { score: -4, family: "exploration-combat" },
+    "ヴァリアントダンジョン": { score: -3, family: "exploration-combat" },
+    "トレジャーハント": { score: 0, family: "collection-entertainment" },
+    "ギャザラー": { score: 6, family: "craft-gather" },
+    "クラフター": { score: 7, family: "craft-gather" },
+    "ヌシ釣り": { score: 7, family: "craft-gather" },
+    "金策": { score: 4, family: "craft-gather" },
+    "ハウジング": { score: 10, family: "independent" },
+    "ミラージュプリズム": { score: 1, family: "appearance-photo" },
+    "グループポーズ": { score: 1, family: "appearance-photo" },
+    "ゴールドソーサー": { score: 4, family: "collection-entertainment" },
+    "スタジオ巡り": { score: 1, family: "appearance-photo" },
+    "ユーザーイベント": { score: 3, family: "social-rp" },
+    "RP": { score: 5, family: "social-rp" },
+    "演奏": { score: 6, family: "social-rp" },
+    "交流": { score: 5, family: "social-rp" },
+    "チャット中心": { score: 6, family: "social-rp" },
+    "エウレカ": { score: -4, family: "exploration-combat" },
+    "固定活動": { score: -8, family: "high-end-raid" },
+    "ボズヤ戦線": { score: -4, family: "exploration-combat" },
+    "初心者支援": { score: 2, family: "social-rp" },
+    "まったり": { score: 8, family: "independent" },
+    "クレセントアイル": { score: -3, family: "exploration-combat" },
+    "装備集め": { score: -5, family: "collection-entertainment" },
+    "無人島": { score: 6, family: "craft-gather" },
+    "コンテンツルーレット": { score: -2, family: "daily-combat" },
+    "マウント集め": { score: -6, family: "collection-entertainment" },
+    "ミニオン集め": { score: 2, family: "collection-entertainment" },
+    "アチーブメント": { score: -1, family: "collection-entertainment" }
+  };
+
+  const FAMILY_LABELS = {
+    "high-end-raid": "高難度・レイド系",
+    "pvp": "PvP系",
+    "exploration-combat": "探索戦闘系",
+    "daily-combat": "日常戦闘系",
+    "craft-gather": "制作・採集系",
+    "appearance-photo": "外見・撮影系",
+    "social-rp": "交流・RP系",
+    "collection-entertainment": "収集・娯楽系",
+    "independent": "独立項目"
+  };
+
+  const DECAY_RATES = [1, 0.8, 0.6];
+
+  function classifyActivity(score) {
+    if (score <= -8.01) return { level: 1, label: "HIGH-END" };
+    if (score <= -6.01) return { level: 2, label: "ASSAULT" };
+    if (score <= -4.01) return { level: 3, label: "TACTICAL" };
+    if (score <= -2.01) return { level: 4, label: "ADVENTURER" };
+    if (score <= -0.01) return { level: 5, label: "VERSATILE" };
+    if (score <= 1.99) return { level: 6, label: "FREESTYLE" };
+    if (score <= 3.99) return { level: 7, label: "EXPLORER" };
+    if (score <= 5.99) return { level: 8, label: "RESIDENT" };
+    if (score <= 7.99) return { level: 9, label: "CIVILIAN" };
+    return { level: 10, label: "REALM DWELLER" };
+  }
+
+  function calculatePlayStyleAnalysis() {
+    const selected = [...profileState.playStyles];
+    if (selected.length < PLAY_STYLE_MIN) {
+      profileState.analysis = { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [] };
+      return profileState.analysis;
+    }
+
+    const familyCounts = new Map();
+    let weightedScoreTotal = 0;
+    let weightTotal = 0;
+    const details = [];
+
+    selected.forEach(name => {
+      const rule = PLAY_STYLE_RULES[name];
+      if (!rule) return;
+      let rate = 1;
+      if (rule.family !== "independent") {
+        const index = familyCounts.get(rule.family) || 0;
+        rate = index < DECAY_RATES.length ? DECAY_RATES[index] : 0.5;
+        familyCounts.set(rule.family, index + 1);
+      }
+      weightedScoreTotal += rule.score * rate;
+      weightTotal += rate;
+      details.push({ name, baseScore: rule.score, family: rule.family, rate, adjustedScore: rule.score * rate });
+    });
+
+    const rawScore = weightTotal ? weightedScoreTotal / weightTotal : 0;
+    const score = Math.max(-10, Math.min(10, rawScore));
+    const classification = classifyActivity(score);
+    profileState.analysis = {
+      valid: true,
+      score,
+      level: classification.level,
+      label: classification.label,
+      gaugePercent: ((score + 10) / 20) * 100,
+      details
+    };
+    return profileState.analysis;
+  }
+
+  function updateAnalysisDisplay() {
+    const result = calculatePlayStyleAnalysis();
+    if (!result.valid) {
+      analysisResultClass.textContent = "未判定";
+      analysisResultScore.textContent = "3項目以上選択してください";
+      analysisResultMarker.style.left = "50%";
+      analysisBreakdown.textContent = "選択内容に応じて分析結果がここへ表示されます。";
+      return;
+    }
+    analysisResultClass.textContent = `${String(result.level).padStart(2, "0")} / 10　${result.label}`;
+    analysisResultScore.textContent = `SCORE ${result.score >= 0 ? "+" : ""}${result.score.toFixed(2)}`;
+    analysisResultMarker.style.left = `${result.gaugePercent}%`;
+    const familyTotals = new Map();
+    result.details.forEach(detail => {
+      const entry = familyTotals.get(detail.family) || { count: 0, weight: 0 };
+      entry.count += 1;
+      entry.weight += detail.rate;
+      familyTotals.set(detail.family, entry);
+    });
+    analysisBreakdown.textContent = [...familyTotals.entries()]
+      .map(([family, value]) => `${FAMILY_LABELS[family]} ${value.count}項目（補正率計${value.weight.toFixed(1)}）`)
+      .join(" / ");
+  }
 
   const BASE_LAYER_ALPHA = {
     frameBack: 0.16,
@@ -1175,6 +1380,7 @@
 
     playStyleSummary.textContent = selected.length ? `選択中：${selected.join("、")}` : "未選択";
     clearPlayStylesBtn.disabled = selected.length === 0;
+    updateAnalysisDisplay();
   }
 
   function initializeFormalInputs() {
@@ -1740,12 +1946,16 @@
     ctx.fillText("ANALYSIS", analysis.x, analysis.y);
     ctx.fillText("ACTIVITY CLASS", analysis.x, analysis.y + 38);
 
+    const analysisData = profileState.analysis;
+    const levelText = analysisData.valid ? `${String(analysisData.level).padStart(2, "0")} / 10` : "-- / 10";
+    const labelText = analysisData.valid ? analysisData.label : "UNRATED";
+
     ctx.font = "700 56px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.96)";
-    ctx.fillText("08 / 10", analysis.x, analysis.y + 72);
+    ctx.fillText(levelText, analysis.x, analysis.y + 72);
 
     ctx.font = "700 30px Segoe UI, sans-serif";
-    ctx.fillText("RESIDENT", analysis.x, analysis.y + 144);
+    ctx.fillText(labelText, analysis.x, analysis.y + 144);
 
     ctx.font = "600 18px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
@@ -1766,8 +1976,14 @@
     grad.addColorStop(0, "rgba(255,108,108,0.95)");
     grad.addColorStop(0.5, "rgba(230,240,255,0.86)");
     grad.addColorStop(1, "rgba(103,229,188,0.95)");
+    const markerX = analysis.gaugeX + 262 * (analysisData.valid ? analysisData.gaugePercent / 100 : 0.5);
     ctx.fillStyle = grad;
-    ctx.fillRect(analysis.gaugeX + 92, gaugeY, 118, 12);
+    ctx.fillRect(markerX - 3, gaugeY - 4, 6, 20);
+    ctx.shadowColor = "rgba(190, 235, 255, 0.9)";
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = "rgba(245, 251, 255, 0.98)";
+    ctx.fillRect(markerX - 1, gaugeY - 4, 2, 20);
+    ctx.shadowBlur = 0;
 
     // Access
     ctx.textAlign = access.align;
