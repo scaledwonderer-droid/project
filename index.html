@@ -527,6 +527,8 @@
   let startTime = performance.now();
   let pausedElapsed = 0;
   let rafId = null;
+  let loadRequestId = 0;
+  let lastRenderError = null;
 
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - clamp01(t), 3);
@@ -600,6 +602,7 @@
 
   async function loadGenreAssets(genre) {
     if (cache[genre]?.loaded) return cache[genre];
+    if (cache[genre]?.promise) return cache[genre].promise;
 
     const cfg = GENRES[genre];
     const base = `${ASSET_ROOT}/${genre}/${genre}`;
@@ -615,16 +618,31 @@
       ringMiddle: cfg.hasMiddle ? `${base}-ring-middle.png` : null
     };
 
-    const result = { loaded: false, images: {}, glowTintCache: {} };
+    const result = cache[genre] || {
+      loaded: false,
+      loading: true,
+      error: null,
+      images: {},
+      glowTintCache: {},
+      promise: null
+    };
+    cache[genre] = result;
+
     const entries = Object.entries(paths).filter(([, path]) => !!path);
 
-    await Promise.all(entries.map(async ([key, path]) => {
+    result.promise = Promise.allSettled(entries.map(async ([key, path]) => {
       result.images[key] = await createImage(path);
-    }));
+      return key;
+    })).then(results => {
+      const failed = results.filter(r => r.status === "rejected");
+      result.loading = false;
+      result.promise = null;
+      result.loaded = failed.length === 0;
+      result.error = failed.length ? failed.map(r => r.reason?.message || String(r.reason)).join(" / ") : null;
+      return result;
+    });
 
-    result.loaded = true;
-    cache[genre] = result;
-    return result;
+    return result.promise;
   }
 
   function makeTintedCanvas(maskImg, color) {
@@ -1052,6 +1070,20 @@
     return pausedElapsed % LOOP_MS;
   }
 
+  function drawLoadingState(ms, message = "LOADING FRAME ASSETS") {
+    drawDefaultBackground(ms);
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(225,244,255,0.90)";
+    ctx.font = "700 30px Segoe UI, sans-serif";
+    ctx.fillText(message, CANVAS_W / 2, CANVAS_H / 2 - 16);
+    ctx.fillStyle = "rgba(155,208,232,0.72)";
+    ctx.font = "500 18px Segoe UI, sans-serif";
+    ctx.fillText("ジャンル素材の読込完了後、自動的に表示を再開します", CANVAS_W / 2, CANVAS_H / 2 + 28);
+    ctx.restore();
+  }
+
   function drawScene(ms) {
     const cfg = GENRES[currentGenre];
     const assets = cache[currentGenre];
@@ -1068,6 +1100,11 @@
       ctx.restore();
     } else {
       drawDefaultBackground(ms);
+    }
+
+    if (!assets || assets.loading || !assets.loaded) {
+      drawLoadingState(ms, assets?.error ? "FRAME ASSET LOAD ERROR" : "LOADING FRAME ASSETS");
+      return;
     }
 
     drawGuides(pos);
@@ -1195,10 +1232,25 @@
   }
 
   async function ensureCurrentGenreLoaded() {
-    setStatus("素材を読み込み中…");
+    const requestedGenre = currentGenre;
+    const requestId = ++loadRequestId;
+
+    updateAccentUI();
+    setStatus(`素材を読み込み中… <strong>${GENRES[requestedGenre].label}</strong>`);
+
     try {
-      await loadGenreAssets(currentGenre);
+      const result = await loadGenreAssets(requestedGenre);
+
+      // ジャンル切替後に古い読込が完了しても、現在表示を上書きしない
+      if (requestId !== loadRequestId || requestedGenre !== currentGenre) return;
+
+      if (!result.loaded) {
+        setStatus(`<span class="danger">素材読込エラー:</span> ${result.error || "一部PNGを読み込めませんでした"}`);
+        return;
+      }
+
       updateAccentUI();
+      restartLoop();
       setStatus(`
         ジャンル: <strong>${GENRES[currentGenre].label}</strong> /
         配置: <strong>${positionSelect.options[positionSelect.selectedIndex].text}</strong> /
@@ -1206,15 +1258,25 @@
         表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark
       `);
     } catch (err) {
+      if (requestId !== loadRequestId || requestedGenre !== currentGenre) return;
       console.error(err);
       setStatus(`<span class="danger">素材読込エラー:</span> ${err.message}`);
     }
   }
 
   function renderLoop() {
-    const ms = getLoopMs();
-    drawScene(ms);
-    rafId = requestAnimationFrame(renderLoop);
+    try {
+      const ms = getLoopMs();
+      drawScene(ms);
+      lastRenderError = null;
+    } catch (err) {
+      console.error("描画エラー:", err);
+      lastRenderError = err;
+      drawLoadingState(getLoopMs(), "RENDER RECOVERY");
+    } finally {
+      // 描画エラーが起きても requestAnimationFrame を止めない
+      rafId = requestAnimationFrame(renderLoop);
+    }
   }
 
   function restartLoop() {
@@ -1252,9 +1314,10 @@
     reader.readAsDataURL(file);
   }
 
-  genreSelect.addEventListener("change", async () => {
+  genreSelect.addEventListener("change", () => {
     currentGenre = genreSelect.value;
-    await ensureCurrentGenreLoaded();
+    updateAccentUI();
+    ensureCurrentGenreLoaded();
   });
 
   positionSelect.addEventListener("change", ensureCurrentGenreLoaded);
