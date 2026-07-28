@@ -107,6 +107,7 @@
   }
 
   select,
+  input[type="text"],
   input[type="range"],
   input[type="file"],
   button {
@@ -114,6 +115,7 @@
   }
 
   select,
+  input[type="text"],
   input[type="file"] {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(160, 220, 255, 0.14);
@@ -259,6 +261,74 @@
     box-shadow: 0 0 12px var(--accent);
   }
 
+
+  .section-title {
+    margin: 8px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid rgba(160, 220, 255, 0.10);
+    color: #dff4ff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+  }
+
+  .hint {
+    color: var(--sub);
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .subjob-box {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    max-height: 230px;
+    overflow: auto;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(160, 220, 255, 0.12);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .subjob-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    padding: 7px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #d9edf8;
+    background: rgba(255,255,255,0.025);
+  }
+
+  .subjob-item input {
+    width: auto;
+    flex: 0 0 auto;
+    accent-color: var(--accent);
+  }
+
+  .subjob-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .subjob-item.disabled {
+    opacity: 0.38;
+  }
+
+  .selection-summary {
+    min-height: 34px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: rgba(103,211,255,0.045);
+    border: 1px solid rgba(103,211,255,0.10);
+    color: #cceafa;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
   .smallnote {
     margin-top: 12px;
     color: var(--sub);
@@ -291,10 +361,10 @@
   <div class="wrap">
     <div class="topbar">
       <div class="titlebox">
-        <h1>FF14 横型IDビジュアル動画ジェネレータ — ジョブエンブレム外装 試作</h1>
+        <h1>FF14 横型IDビジュアル動画ジェネレータ — 正式入力画面 基礎実装</h1>
         <p>
-          これは<strong>メインジョブ選択に応じて、ジョブマークと対応外装を自動切替する試作</strong>です。<br>
-          `ff14-job-emblem-frames` と `ff14-job-marks` を `index.html` と同じ階層に置いてください。ジョブマークはユーザーがアップロードせず、選択したメインジョブから自動で読み込みます。
+          キャラクター情報とジョブ情報を入力し、12秒の横型IDビジュアルへ反映する基礎実装です。<br>
+          `ff14-job-emblem-frames` と `ff14-job-marks` は `index.html` と同じ階層で使用します。
         </p>
       </div>
     </div>
@@ -304,6 +374,37 @@
         <h2>CONTROL</h2>
 
         <div class="grid">
+          <div class="section-title">IDENTITY / ORIGIN</div>
+
+          <div class="field">
+            <label for="characterNameInput">キャラクター名</label>
+            <input id="characterNameInput" type="text" maxlength="32" value="Luca Traveler" placeholder="Character Name" autocomplete="off" />
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="dataCenterSelect">DC</label>
+              <select id="dataCenterSelect"></select>
+            </div>
+            <div class="field">
+              <label for="worldSelect">World</label>
+              <select id="worldSelect"></select>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="raceSelect">種族</label>
+              <select id="raceSelect"></select>
+            </div>
+            <div class="field">
+              <label for="clanSelect">部族</label>
+              <select id="clanSelect"></select>
+            </div>
+          </div>
+
+          <div class="section-title">JOB</div>
+
           <div class="field">
             <label for="mainJobSelect">メインジョブ</label>
             <select id="mainJobSelect">
@@ -356,6 +457,15 @@
               </optgroup>
             </select>
           </div>
+
+          <div class="field">
+            <label>サブジョブ（複数選択・完成動画には非表示）</label>
+            <div id="subJobBox" class="subjob-box"></div>
+            <div id="subJobSummary" class="selection-summary">未選択</div>
+            <div class="hint">メインジョブと同じジョブは選択できません。選択内容は後続の復元用IDコードへ保存する予定です。</div>
+          </div>
+
+          <div class="section-title">VISUAL / PREVIEW</div>
 
           <div class="row2">
             <div class="field">
@@ -464,7 +574,14 @@
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d");
 
+  const characterNameInput = document.getElementById("characterNameInput");
+  const dataCenterSelect = document.getElementById("dataCenterSelect");
+  const worldSelect = document.getElementById("worldSelect");
+  const raceSelect = document.getElementById("raceSelect");
+  const clanSelect = document.getElementById("clanSelect");
   const mainJobSelect = document.getElementById("mainJobSelect");
+  const subJobBox = document.getElementById("subJobBox");
+  const subJobSummary = document.getElementById("subJobSummary");
   const positionSelect = document.getElementById("positionSelect");
   const sizeSelect = document.getElementById("sizeSelect");
   const frameOpacitySlider = document.getElementById("frameOpacity");
@@ -484,6 +601,41 @@
   const accentLabel = document.getElementById("accentLabel");
   const frameOpacityValue = document.getElementById("frameOpacityValue");
   const glowBoostValue = document.getElementById("glowBoostValue");
+
+  const DATA_CENTERS = {
+    "Elemental": ["Aegis", "Atomos", "Carbuncle", "Garuda", "Gungnir", "Kujata", "Tonberry", "Typhon"],
+    "Gaia": ["Alexander", "Bahamut", "Durandal", "Fenrir", "Ifrit", "Ridill", "Tiamat", "Ultima"],
+    "Mana": ["Anima", "Asura", "Chocobo", "Hades", "Ixion", "Masamune", "Pandaemonium", "Titan"],
+    "Meteor": ["Belias", "Mandragora", "Ramuh", "Shinryu", "Unicorn", "Valefor", "Yojimbo", "Zeromus"],
+    "Aether": ["Adamantoise", "Cactuar", "Faerie", "Gilgamesh", "Jenova", "Midgardsormr", "Sargatanas", "Siren"],
+    "Primal": ["Behemoth", "Excalibur", "Exodus", "Famfrit", "Hyperion", "Lamia", "Leviathan", "Ultros"],
+    "Crystal": ["Balmung", "Brynhildr", "Coeurl", "Diabolos", "Goblin", "Malboro", "Mateus", "Zalera"],
+    "Dynamis": ["Cuchulainn", "Golem", "Halicarnassus", "Kraken", "Maduin", "Marilith", "Rafflesia", "Seraph"],
+    "Chaos": ["Cerberus", "Louisoix", "Moogle", "Omega", "Phantom", "Ragnarok", "Sagittarius", "Spriggan"],
+    "Light": ["Alpha", "Lich", "Odin", "Phoenix", "Raiden", "Shiva", "Twintania", "Zodiark"],
+    "Shadow": ["Innocence", "Pixie", "Titania", "Tycoon"],
+    "Materia": ["Bismarck", "Ravana", "Sephirot", "Sophia", "Zurvan"]
+  };
+
+  const RACES = {
+    "Hyur": ["Midlander", "Highlander"],
+    "Elezen": ["Wildwood", "Duskwight"],
+    "Lalafell": ["Plainsfolk", "Dunesfolk"],
+    "Miqo'te": ["Seeker of the Sun", "Keeper of the Moon"],
+    "Roegadyn": ["Sea Wolf", "Hellsguard"],
+    "Au Ra": ["Raen", "Xaela"],
+    "Hrothgar": ["Helions", "The Lost"],
+    "Viera": ["Rava", "Veena"]
+  };
+
+  const profileState = {
+    characterName: "Luca Traveler",
+    dataCenter: "Mana",
+    world: "Ixion",
+    race: "Au Ra",
+    clan: "Raen",
+    subJobs: new Set()
+  };
 
   const BASE_LAYER_ALPHA = {
     frameBack: 0.16,
@@ -696,6 +848,73 @@
   let rafId = null;
   let loadRequestId = 0;
   let lastRenderError = null;
+
+  function populateSelect(select, values, selectedValue) {
+    select.innerHTML = "";
+    values.forEach(value => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      if (value === selectedValue) option.selected = true;
+      select.appendChild(option);
+    });
+  }
+
+  function updateWorldOptions() {
+    profileState.dataCenter = dataCenterSelect.value;
+    const worlds = DATA_CENTERS[profileState.dataCenter] || [];
+    const selected = worlds.includes(profileState.world) ? profileState.world : worlds[0];
+    populateSelect(worldSelect, worlds, selected);
+    profileState.world = worldSelect.value || "";
+  }
+
+  function updateClanOptions() {
+    profileState.race = raceSelect.value;
+    const clans = RACES[profileState.race] || [];
+    const selected = clans.includes(profileState.clan) ? profileState.clan : clans[0];
+    populateSelect(clanSelect, clans, selected);
+    profileState.clan = clanSelect.value || "";
+  }
+
+  function renderSubJobOptions() {
+    subJobBox.innerHTML = "";
+    Object.entries(JOBS).forEach(([jobId, job]) => {
+      const label = document.createElement("label");
+      label.className = "subjob-item";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = jobId;
+      input.checked = profileState.subJobs.has(jobId);
+      input.disabled = jobId === currentJobId;
+      if (input.disabled) label.classList.add("disabled");
+      input.addEventListener("change", () => {
+        if (input.checked) profileState.subJobs.add(jobId);
+        else profileState.subJobs.delete(jobId);
+        updateSubJobSummary();
+      });
+      const text = document.createElement("span");
+      text.textContent = `${job.nameJa} / ${job.nameEn}`;
+      label.append(input, text);
+      subJobBox.appendChild(label);
+    });
+    updateSubJobSummary();
+  }
+
+  function updateSubJobSummary() {
+    const names = [...profileState.subJobs]
+      .filter(jobId => JOBS[jobId])
+      .map(jobId => JOBS[jobId].nameJa);
+    subJobSummary.textContent = names.length ? `選択中 ${names.length}件：${names.join("、")}` : "未選択";
+  }
+
+  function initializeFormalInputs() {
+    populateSelect(dataCenterSelect, Object.keys(DATA_CENTERS), profileState.dataCenter);
+    updateWorldOptions();
+    populateSelect(raceSelect, Object.keys(RACES), profileState.race);
+    updateClanOptions();
+    characterNameInput.value = profileState.characterName;
+    renderSubJobOptions();
+  }
 
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - clamp01(t), 3);
@@ -1214,7 +1433,7 @@
 
     ctx.font = "700 42px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.96)";
-    ctx.fillText("CHARACTER NAME", identity.x, identity.y + 32);
+    ctx.fillText((profileState.characterName || "CHARACTER NAME").toUpperCase(), identity.x, identity.y + 32);
 
     ctx.font = "600 18px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
@@ -1232,8 +1451,8 @@
 
     ctx.font = "700 22px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.94)";
-    ctx.fillText("MANA / IXION", origin.x, origin.y + 38);
-    ctx.fillText("AU RA / RAEN", origin.x, origin.y + 74);
+    ctx.fillText(`${profileState.dataCenter.toUpperCase()} / ${profileState.world.toUpperCase()}`, origin.x, origin.y + 38);
+    ctx.fillText(`${profileState.race.toUpperCase()} / ${profileState.clan.toUpperCase()}`, origin.x, origin.y + 74);
 
     // Analysis
     ctx.textAlign = analysis.align;
@@ -1555,9 +1774,31 @@
     reader.readAsDataURL(file);
   }
 
+  characterNameInput.addEventListener("input", () => {
+    profileState.characterName = characterNameInput.value.trim();
+  });
+
+  dataCenterSelect.addEventListener("change", () => {
+    updateWorldOptions();
+  });
+
+  worldSelect.addEventListener("change", () => {
+    profileState.world = worldSelect.value;
+  });
+
+  raceSelect.addEventListener("change", () => {
+    updateClanOptions();
+  });
+
+  clanSelect.addEventListener("change", () => {
+    profileState.clan = clanSelect.value;
+  });
+
   mainJobSelect.addEventListener("change", async () => {
     currentJobId = mainJobSelect.value;
     currentGenre = JOBS[currentJobId].genre;
+    profileState.subJobs.delete(currentJobId);
+    renderSubJobOptions();
     updateAccentUI();
     await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
     restartLoop();
@@ -1649,6 +1890,7 @@
   restartBtn.addEventListener("click", restartLoop);
 
   async function init() {
+    initializeFormalInputs();
     frameOpacityValue.textContent = Number(frameOpacitySlider.value).toFixed(2);
     glowBoostValue.textContent = Number(glowBoostSlider.value).toFixed(2);
     ssScaleValue.textContent = `${Math.round(ssTransform.scale * 100)}%`;
