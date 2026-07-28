@@ -571,6 +571,33 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+
+  .details-grid > .field:has(.qr-controls) {
+    grid-column: 1 / -1;
+  }
+
+  .qr-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 210px;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .qr-toggle {
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .qr-status {
+    margin-top: 2px;
+    color: #8fb1c1;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .qr-status.error { color: #ffb4ba; }
+  .qr-status.ready { color: #98e7c7; }
+
   @media (max-width: 1100px) {
     .layout {
       grid-template-columns: 1fr;
@@ -583,9 +610,11 @@
     }
     .details-grid > .section-title,
     .details-grid > .field:has(.subjob-box),
-    .details-grid > .field:has(.playstyle-panel) {
+    .details-grid > .field:has(.playstyle-panel),
+    .details-grid > .field:has(.qr-controls) {
       grid-column: 1;
     }
+    .qr-controls { grid-template-columns: 1fr; }
     .details-grid .subjob-box,
     .details-grid .playstyle-items {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -763,6 +792,14 @@
   <div class="analysis-result-axis"><span>COMBAT</span><span>LIFE</span></div>
   <div class="analysis-breakdown" id="analysisBreakdown">選択内容に応じて分析結果がここへ表示されます。</div>
 </div>
+</div><div class="section-title">ACCESS / QR</div><div class="field">
+<label for="qrUrlInput">QRコードへ格納するURL（任意）</label>
+<div class="qr-controls">
+  <input autocomplete="off" id="qrUrlInput" maxlength="106" placeholder="https://example.com/" type="text"/>
+  <label class="check qr-toggle"><input id="qrEnabledInput" type="checkbox"/><span>QRコードを表示</span></label>
+</div>
+<div class="qr-status" id="qrStatus">URLを入力し、表示をONにするとプレビューへ反映されます。</div>
+<div class="hint">X、Lodestone、CarrdなどのURLに使用できます。QR内部には発光や走査線を重ねません。</div>
 </div></div></div>
 </div>
 <script>
@@ -789,6 +826,9 @@
   const analysisResultScore = document.getElementById("analysisResultScore");
   const analysisResultMarker = document.getElementById("analysisResultMarker");
   const analysisBreakdown = document.getElementById("analysisBreakdown");
+  const qrUrlInput = document.getElementById("qrUrlInput");
+  const qrEnabledInput = document.getElementById("qrEnabledInput");
+  const qrStatus = document.getElementById("qrStatus");
   const positionSelect = document.getElementById("positionSelect");
   const sizeSelect = document.getElementById("sizeSelect");
   const frameOpacitySlider = document.getElementById("frameOpacity");
@@ -843,7 +883,10 @@
     clan: "Raen",
     subJobs: new Set(),
     playStyles: new Set(),
-    analysis: { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [] }
+    analysis: { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [] },
+    qrEnabled: false,
+    qrUrl: "",
+    qrMatrix: null
   };
 
   const PLAY_STYLE_MIN = 3;
@@ -944,7 +987,7 @@
   const DECAY_RATES = [1, 0.8, 0.6];
 
   function classifyActivity(score) {
-    if (score <= -8.01) return { level: 1, label: "HIGH-END" };
+    if (score <= -8.01) return { level: 1, label: "WARHOUND" };
     if (score <= -6.01) return { level: 2, label: "ASSAULT" };
     if (score <= -4.01) return { level: 3, label: "TACTICAL" };
     if (score <= -2.01) return { level: 4, label: "ADVENTURER" };
@@ -958,6 +1001,238 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+
+  // 固定Version 5-L（最大106 UTF-8 bytes）のローカルQR生成器。
+  // 外部APIや外部ライブラリを使わず、ブラウザ内だけで生成する。
+  function makeQrMatrix(text) {
+    const bytes = [...new TextEncoder().encode(text)];
+    if (!bytes.length) throw new Error("URLが空です");
+    if (bytes.length > 106) throw new Error("URLが長すぎます（UTF-8で106バイトまで）");
+
+    const version = 5;
+    const size = 17 + version * 4;
+    const dataCodewords = 108;
+    const eccCodewords = 26;
+    const bits = [];
+    const appendBits = (value, length) => {
+      for (let i = length - 1; i >= 0; i--) bits.push((value >>> i) & 1);
+    };
+    appendBits(0b0100, 4);
+    appendBits(bytes.length, 8);
+    bytes.forEach(byte => appendBits(byte, 8));
+    const capacityBits = dataCodewords * 8;
+    for (let i = 0; i < 4 && bits.length < capacityBits; i++) bits.push(0);
+    while (bits.length % 8) bits.push(0);
+    const data = [];
+    for (let i = 0; i < bits.length; i += 8) {
+      let value = 0;
+      for (let j = 0; j < 8; j++) value = (value << 1) | bits[i + j];
+      data.push(value);
+    }
+    for (let pad = 0; data.length < dataCodewords; pad++) data.push(pad % 2 === 0 ? 0xec : 0x11);
+
+    const exp = new Uint8Array(512);
+    const log = new Uint8Array(256);
+    let x = 1;
+    for (let i = 0; i < 255; i++) {
+      exp[i] = x;
+      log[x] = i;
+      x <<= 1;
+      if (x & 0x100) x ^= 0x11d;
+    }
+    for (let i = 255; i < 512; i++) exp[i] = exp[i - 255];
+    const mul = (a, b) => (a === 0 || b === 0) ? 0 : exp[log[a] + log[b]];
+    let generator = [1];
+    for (let i = 0; i < eccCodewords; i++) {
+      const next = new Array(generator.length + 1).fill(0);
+      generator.forEach((coefficient, index) => {
+        next[index] ^= coefficient;
+        next[index + 1] ^= mul(coefficient, exp[i]);
+      });
+      generator = next;
+    }
+    const remainder = new Array(eccCodewords).fill(0);
+    data.forEach(byte => {
+      const factor = byte ^ remainder[0];
+      remainder.shift();
+      remainder.push(0);
+      for (let i = 0; i < eccCodewords; i++) remainder[i] ^= mul(generator[i + 1], factor);
+    });
+    const codewords = data.concat(remainder);
+    const codeBits = [];
+    codewords.forEach(byte => {
+      for (let i = 7; i >= 0; i--) codeBits.push((byte >>> i) & 1);
+    });
+
+    const createBase = () => Array.from({ length: size }, () => Array(size).fill(null));
+    const drawFinder = (matrix, row, col) => {
+      for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) {
+        const y = row + r, z = col + c;
+        if (y < 0 || z < 0 || y >= size || z >= size) continue;
+        matrix[y][z] = r >= 0 && r <= 6 && c >= 0 && c <= 6 &&
+          (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4));
+      }
+    };
+    const drawAlignment = (matrix, centerRow, centerCol) => {
+      if (matrix[centerRow][centerCol] !== null) return;
+      for (let r = -2; r <= 2; r++) for (let c = -2; c <= 2; c++) {
+        matrix[centerRow + r][centerCol + c] = Math.max(Math.abs(r), Math.abs(c)) !== 1;
+      }
+    };
+    const setupFunctionPatterns = matrix => {
+      drawFinder(matrix, 0, 0);
+      drawFinder(matrix, size - 7, 0);
+      drawFinder(matrix, 0, size - 7);
+      for (let i = 8; i < size - 8; i++) {
+        if (matrix[6][i] === null) matrix[6][i] = i % 2 === 0;
+        if (matrix[i][6] === null) matrix[i][6] = i % 2 === 0;
+      }
+      drawAlignment(matrix, 30, 30);
+      matrix[size - 8][8] = true;
+      for (let i = 0; i < 15; i++) {
+        const row = i < 6 ? i : i < 8 ? i + 1 : size - 15 + i;
+        const col = i < 8 ? size - i - 1 : i < 9 ? 15 - i : 15 - i - 1;
+        if (matrix[row][8] === null) matrix[row][8] = false;
+        if (matrix[8][col] === null) matrix[8][col] = false;
+      }
+    };
+    const maskBit = (mask, row, col) => {
+      switch (mask) {
+        case 0: return (row + col) % 2 === 0;
+        case 1: return row % 2 === 0;
+        case 2: return col % 3 === 0;
+        case 3: return (row + col) % 3 === 0;
+        case 4: return (Math.floor(row / 2) + Math.floor(col / 3)) % 2 === 0;
+        case 5: return (row * col) % 2 + (row * col) % 3 === 0;
+        case 6: return ((row * col) % 2 + (row * col) % 3) % 2 === 0;
+        default: return ((row * col) % 3 + (row + col) % 2) % 2 === 0;
+      }
+    };
+    const formatBits = mask => {
+      let value = (1 << 3) | mask; // EC level L = 01
+      let remainder = value << 10;
+      const polynomial = 0x537;
+      const degree = number => 31 - Math.clz32(number);
+      while (degree(remainder) >= degree(polynomial)) remainder ^= polynomial << (degree(remainder) - degree(polynomial));
+      return ((value << 10) | remainder) ^ 0x5412;
+    };
+    const placeFormat = (matrix, mask) => {
+      const value = formatBits(mask);
+      for (let i = 0; i < 15; i++) {
+        const bit = ((value >>> i) & 1) === 1;
+        const row = i < 6 ? i : i < 8 ? i + 1 : size - 15 + i;
+        const col = i < 8 ? size - i - 1 : i < 9 ? 15 - i : 15 - i - 1;
+        matrix[row][8] = bit;
+        matrix[8][col] = bit;
+      }
+      matrix[size - 8][8] = true;
+    };
+    const placeData = (matrix, mask) => {
+      let bitIndex = 0;
+      let upward = true;
+      for (let right = size - 1; right >= 1; right -= 2) {
+        if (right === 6) right--;
+        for (let offset = 0; offset < size; offset++) {
+          const row = upward ? size - 1 - offset : offset;
+          for (let columnOffset = 0; columnOffset < 2; columnOffset++) {
+            const col = right - columnOffset;
+            if (matrix[row][col] !== null) continue;
+            let bit = bitIndex < codeBits.length ? codeBits[bitIndex++] === 1 : false;
+            if (maskBit(mask, row, col)) bit = !bit;
+            matrix[row][col] = bit;
+          }
+        }
+        upward = !upward;
+      }
+    };
+    const penalty = matrix => {
+      let score = 0;
+      for (let r = 0; r < size; r++) {
+        let runColor = matrix[r][0], runLength = 1;
+        for (let c = 1; c < size; c++) {
+          if (matrix[r][c] === runColor) runLength++;
+          else { if (runLength >= 5) score += 3 + runLength - 5; runColor = matrix[r][c]; runLength = 1; }
+        }
+        if (runLength >= 5) score += 3 + runLength - 5;
+      }
+      for (let c = 0; c < size; c++) {
+        let runColor = matrix[0][c], runLength = 1;
+        for (let r = 1; r < size; r++) {
+          if (matrix[r][c] === runColor) runLength++;
+          else { if (runLength >= 5) score += 3 + runLength - 5; runColor = matrix[r][c]; runLength = 1; }
+        }
+        if (runLength >= 5) score += 3 + runLength - 5;
+      }
+      for (let r = 0; r < size - 1; r++) for (let c = 0; c < size - 1; c++) {
+        const count = +matrix[r][c] + +matrix[r + 1][c] + +matrix[r][c + 1] + +matrix[r + 1][c + 1];
+        if (count === 0 || count === 4) score += 3;
+      }
+      const pattern = [true,false,true,true,true,false,true,false,false,false,false];
+      const reverse = [...pattern].reverse();
+      const match = values => pattern.every((value, i) => values[i] === value) || reverse.every((value, i) => values[i] === value);
+      for (let r = 0; r < size; r++) for (let c = 0; c <= size - 11; c++) if (match(matrix[r].slice(c, c + 11))) score += 40;
+      for (let c = 0; c < size; c++) for (let r = 0; r <= size - 11; r++) if (match(Array.from({length:11}, (_,i) => matrix[r+i][c]))) score += 40;
+      let dark = 0;
+      matrix.forEach(row => row.forEach(cell => { if (cell) dark++; }));
+      score += Math.floor(Math.abs(dark * 100 / (size * size) - 50) / 5) * 10;
+      return score;
+    };
+
+    let bestMatrix = null;
+    let bestPenalty = Infinity;
+    for (let mask = 0; mask < 8; mask++) {
+      const matrix = createBase();
+      setupFunctionPatterns(matrix);
+      placeData(matrix, mask);
+      placeFormat(matrix, mask);
+      const value = penalty(matrix);
+      if (value < bestPenalty) { bestPenalty = value; bestMatrix = matrix; }
+    }
+    return bestMatrix;
+  }
+
+  function updateQrState() {
+    profileState.qrUrl = qrUrlInput.value.trim();
+    profileState.qrEnabled = qrEnabledInput.checked;
+    profileState.qrMatrix = null;
+    qrStatus.className = "qr-status";
+
+    if (!profileState.qrUrl) {
+      qrStatus.textContent = profileState.qrEnabled ? "URLを入力してください。" : "URLを入力し、表示をONにするとプレビューへ反映されます。";
+      if (profileState.qrEnabled) qrStatus.classList.add("error");
+      return;
+    }
+    try {
+      profileState.qrMatrix = makeQrMatrix(profileState.qrUrl);
+      const byteLength = new TextEncoder().encode(profileState.qrUrl).length;
+      qrStatus.textContent = `QR生成済み｜${byteLength} / 106 bytes`;
+      qrStatus.classList.add("ready");
+    } catch (error) {
+      qrStatus.textContent = error.message || "QRコードを生成できませんでした。";
+      qrStatus.classList.add("error");
+    }
+  }
+
+  function drawQrCode(matrix, x, y, width, height) {
+    if (!matrix) return;
+    const quietZone = 4;
+    const modules = matrix.length + quietZone * 2;
+    const moduleSize = Math.max(1, Math.floor(Math.min(width, height) / modules));
+    const drawSize = modules * moduleSize;
+    const originX = Math.round(x + (width - drawSize) / 2);
+    const originY = Math.round(y + (height - drawSize) / 2);
+    ctx.save();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(originX, originY, drawSize, drawSize);
+    ctx.fillStyle = "#071018";
+    matrix.forEach((row, rowIndex) => row.forEach((dark, colIndex) => {
+      if (dark) ctx.fillRect(originX + (colIndex + quietZone) * moduleSize, originY + (rowIndex + quietZone) * moduleSize, moduleSize, moduleSize);
+    }));
+    ctx.restore();
   }
 
   function calculatePlayStyleAnalysis() {
@@ -2085,12 +2360,16 @@
     ctx.fillStyle = "rgba(236, 246, 255, 0.95)";
     ctx.fillText("DI1-7K4M-P8Q2-X9D6-C3", access.codeX, access.y + 36);
 
-    ctx.strokeStyle = "rgba(220, 240, 255, 0.55)";
-    ctx.strokeRect(access.qrX, access.qrY, 120, 120);
-    ctx.font = "600 16px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(220, 240, 255, 0.82)";
-    ctx.textAlign = "center";
-    ctx.fillText("QR", access.qrX + 60, access.qrY + 51);
+    if (profileState.qrEnabled && profileState.qrMatrix) {
+      drawQrCode(profileState.qrMatrix, access.qrX, access.qrY, 120, 120);
+    } else {
+      ctx.strokeStyle = "rgba(220, 240, 255, 0.55)";
+      ctx.strokeRect(access.qrX, access.qrY, 120, 120);
+      ctx.font = "600 16px Segoe UI, sans-serif";
+      ctx.fillStyle = "rgba(220, 240, 255, 0.82)";
+      ctx.textAlign = "center";
+      ctx.fillText(profileState.qrEnabled ? "NO URL" : "QR OFF", access.qrX + 60, access.qrY + 51);
+    }
 
     // Credit
     ctx.font = "500 16px Segoe UI, sans-serif";
@@ -2368,6 +2647,9 @@
     profileState.characterName = characterNameInput.value.trim();
   });
 
+  qrUrlInput.addEventListener("input", updateQrState);
+  qrEnabledInput.addEventListener("change", updateQrState);
+
   dataCenterSelect.addEventListener("change", applyDcWorldSelection);
 
   raceSelect.addEventListener("change", applyRaceClanSelection);
@@ -2472,6 +2754,7 @@
     frameOpacityValue.textContent = Number(frameOpacitySlider.value).toFixed(2);
     glowBoostValue.textContent = Number(glowBoostSlider.value).toFixed(2);
     ssScaleValue.textContent = `${Math.round(ssTransform.scale * 100)}%`;
+    updateQrState();
     await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
     renderLoop();
   }
