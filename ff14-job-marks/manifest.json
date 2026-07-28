@@ -1,0 +1,774 @@
+{
+  "name": "FF14 Horizontal ID Visual Job Marks",
+  "version": 1,
+  "canvas": [
+    1024,
+    1024
+  ],
+  "format": "PNG RGBA",
+  "colors": {
+    "darkTheme": "#F4F7FA",
+    "lightTheme": "#191D23"
+  },
+  "jobs": [
+    {
+      "id": "paladin",
+      "nameJa": "ナイト",
+      "role": "TANK",
+      "dark": "job-marks/paladin-dark.png",
+      "light": "job-marks/paladin-light.png",
+      "contentBounds": [
+        252,
+        208,
+        773,
+        865
+      ],
+      "contentSize": [
+        521,
+        657
+      ],
+      "sourceSize": [
+        162,
+        204
+      ],
+      "scaleFactor": 3.21837,
+      "opaqueAreaPx": 148965
+    },
+    {
+      "id": "warrior",
+      "nameJa": "戦士",
+      "role": "TANK",
+      "dark": "job-marks/warrior-dark.png",
+      "light": "job-marks/warrior-light.png",
+      "contentBounds": [
+        186,
+        253,
+        839,
+        772
+      ],
+      "contentSize": [
+        653,
+        519
+      ],
+      "sourceSize": [
+        205,
+        163
+      ],
+      "scaleFactor": 3.18431,
+      "opaqueAreaPx": 150036
+    },
+    {
+      "id": "dark-knight",
+      "nameJa": "暗黒騎士",
+      "role": "TANK",
+      "dark": "job-marks/dark-knight-dark.png",
+      "light": "job-marks/dark-knight-light.png",
+      "contentBounds": [
+        233,
+        168,
+        794,
+        928
+      ],
+      "contentSize": [
+        561,
+        760
+      ],
+      "sourceSize": [
+        149,
+        202
+      ],
+      "scaleFactor": 3.76238,
+      "opaqueAreaPx": 112924
+    },
+    {
+      "id": "gunbreaker",
+      "nameJa": "ガンブレイカー",
+      "role": "TANK",
+      "dark": "job-marks/gunbreaker-dark.png",
+      "light": "job-marks/gunbreaker-light.png",
+      "contentBounds": [
+        219,
+        187,
+        829,
+        809
+      ],
+      "contentSize": [
+        610,
+        622
+      ],
+      "sourceSize": [
+        203,
+        207
+      ],
+      "scaleFactor": 3.00711,
+      "opaqueAreaPx": 149858
+    },
+    {
+      "id": "white-mage",
+      "nameJa": "白魔道士",
+      "role": "HEALER",
+      "dark": "job-marks/white-mage-dark.png",
+      "light": "job-marks/white-mage-light.png",
+      "contentBounds": [
+        317,
+        168,
+        669,
+        928
+      ],
+      "contentSize": [
+        352,
+        760
+      ],
+      "sourceSize": [
+        95,
+        205
+      ],
+      "scaleFactor": 3.70732,
+      "opaqueAreaPx": 85695
+    },
+    {
+      "id": "scholar",
+      "nameJa": "学者",
+      "role": "HEALER",
+      "dark": "job-marks/scholar-dark.png",
+      "light": "job-marks/scholar-light.png",
+      "contentBounds": [
+        157,
+        313,
+        868,
+        698
+      ],
+      "contentSize": [
+        711,
+        385
+      ],
+      "sourceSize": [
+        205,
+        111
+      ],
+      "scaleFactor": 3.47047,
+      "opaqueAreaPx": 148953
+    },
+    {
+      "id": "astrologian",
+      "nameJa": "占星術師",
+      "role": "HEALER",
+      "dark": "job-marks/astrologian-dark.png",
+      "light": "job-marks/astrologian-light.png",
+      "contentBounds": [
+        161,
+        235,
+        907,
+        860
+      ],
+      "contentSize": [
+        746,
+        625
+      ],
+      "sourceSize": [
+        203,
+        170
+      ],
+      "scaleFactor": 3.67556,
+      "opaqueAreaPx": 150005
+    },
+    {
+      "id": "sage",
+      "nameJa": "賢者",
+      "role": "HEALER",
+      "dark": "job-marks/sage-dark.png",
+      "light": "job-marks/sage-light.png",
+      "contentBounds": [
+        192,
+        168,
+        833,
+        928
+      ],
+      "contentSize": [
+        641,
+        760
+      ],
+      "sourceSize": [
+        216,
+        256
+      ],
+      "scaleFactor": 2.96875,
+      "opaqueAreaPx": 133219
+    },
+    {
+      "id": "monk",
+      "nameJa": "モンク",
+      "role": "MELEE DPS",
+      "dark": "job-marks/monk-dark.png",
+      "light": "job-marks/monk-light.png",
+      "contentBounds": [
+        132,
+        144,
+        892,
+        885
+      ],
+      "contentSize": [
+        760,
+        741
+      ],
+      "sourceSize": [
+        205,
+        200
+      ],
+      "scaleFactor": 3.70732,
+      "opaqueAreaPx": 144515
+    },
+    {
+      "id": "dragoon",
+      "nameJa": "竜騎士",
+      "role": "MELEE DPS",
+      "dark": "job-marks/dragoon-dark.png",
+      "light": "job-marks/dragoon-light.png",
+      "contentBounds": [
+        269,
+        146,
+        757,
+        906
+      ],
+      "contentSize": [
+        488,
+        760
+      ],
+      "sourceSize": [
+        131,
+        204
+      ],
+      "scaleFactor": 3.72549,
+      "opaqueAreaPx": 118761
+    },
+    {
+      "id": "ninja",
+      "nameJa": "忍者",
+      "role": "MELEE DPS",
+      "dark": "job-marks/ninja-dark.png",
+      "light": "job-marks/ninja-light.png",
+      "contentBounds": [
+        219,
+        150,
+        899,
+        817
+      ],
+      "contentSize": [
+        680,
+        667
+      ],
+      "sourceSize": [
+        202,
+        198
+      ],
+      "scaleFactor": 3.3677,
+      "opaqueAreaPx": 149958
+    },
+    {
+      "id": "samurai",
+      "nameJa": "侍",
+      "role": "MELEE DPS",
+      "dark": "job-marks/samurai-dark.png",
+      "light": "job-marks/samurai-light.png",
+      "contentBounds": [
+        212,
+        213,
+        812,
+        813
+      ],
+      "contentSize": [
+        600,
+        600
+      ],
+      "sourceSize": [
+        205,
+        205
+      ],
+      "scaleFactor": 2.92683,
+      "opaqueAreaPx": 150651
+    },
+    {
+      "id": "reaper",
+      "nameJa": "リーパー",
+      "role": "MELEE DPS",
+      "dark": "job-marks/reaper-dark.png",
+      "light": "job-marks/reaper-light.png",
+      "contentBounds": [
+        243,
+        96,
+        884,
+        856
+      ],
+      "contentSize": [
+        641,
+        760
+      ],
+      "sourceSize": [
+        216,
+        256
+      ],
+      "scaleFactor": 2.96875,
+      "opaqueAreaPx": 147711
+    },
+    {
+      "id": "viper",
+      "nameJa": "ヴァイパー",
+      "role": "MELEE DPS",
+      "dark": "job-marks/viper-dark.png",
+      "light": "job-marks/viper-light.png",
+      "contentBounds": [
+        218,
+        170,
+        808,
+        921
+      ],
+      "contentSize": [
+        590,
+        751
+      ],
+      "sourceSize": [
+        199,
+        253
+      ],
+      "scaleFactor": 2.96731,
+      "opaqueAreaPx": 150684
+    },
+    {
+      "id": "bard",
+      "nameJa": "吟遊詩人",
+      "role": "PHYSICAL RANGED DPS",
+      "dark": "job-marks/bard-dark.png",
+      "light": "job-marks/bard-light.png",
+      "contentBounds": [
+        211,
+        195,
+        730,
+        877
+      ],
+      "contentSize": [
+        519,
+        682
+      ],
+      "sourceSize": [
+        156,
+        205
+      ],
+      "scaleFactor": 3.32532,
+      "opaqueAreaPx": 151132
+    },
+    {
+      "id": "machinist",
+      "nameJa": "機工士",
+      "role": "PHYSICAL RANGED DPS",
+      "dark": "job-marks/machinist-dark.png",
+      "light": "job-marks/machinist-light.png",
+      "contentBounds": [
+        207,
+        147,
+        782,
+        907
+      ],
+      "contentSize": [
+        575,
+        760
+      ],
+      "sourceSize": [
+        155,
+        205
+      ],
+      "scaleFactor": 3.70732,
+      "opaqueAreaPx": 136852
+    },
+    {
+      "id": "dancer",
+      "nameJa": "踊り子",
+      "role": "PHYSICAL RANGED DPS",
+      "dark": "job-marks/dancer-dark.png",
+      "light": "job-marks/dancer-light.png",
+      "contentBounds": [
+        211,
+        162,
+        814,
+        922
+      ],
+      "contentSize": [
+        603,
+        760
+      ],
+      "sourceSize": [
+        161,
+        203
+      ],
+      "scaleFactor": 3.74384,
+      "opaqueAreaPx": 149127
+    },
+    {
+      "id": "black-mage",
+      "nameJa": "黒魔道士",
+      "role": "MAGICAL RANGED DPS",
+      "dark": "job-marks/black-mage-dark.png",
+      "light": "job-marks/black-mage-light.png",
+      "contentBounds": [
+        190,
+        186,
+        838,
+        834
+      ],
+      "contentSize": [
+        648,
+        648
+      ],
+      "sourceSize": [
+        205,
+        205
+      ],
+      "scaleFactor": 3.1613,
+      "opaqueAreaPx": 151358
+    },
+    {
+      "id": "summoner",
+      "nameJa": "召喚士",
+      "role": "MAGICAL RANGED DPS",
+      "dark": "job-marks/summoner-dark.png",
+      "light": "job-marks/summoner-light.png",
+      "contentBounds": [
+        222,
+        143,
+        807,
+        799
+      ],
+      "contentSize": [
+        585,
+        656
+      ],
+      "sourceSize": [
+        183,
+        205
+      ],
+      "scaleFactor": 3.19911,
+      "opaqueAreaPx": 149167
+    },
+    {
+      "id": "red-mage",
+      "nameJa": "赤魔道士",
+      "role": "MAGICAL RANGED DPS",
+      "dark": "job-marks/red-mage-dark.png",
+      "light": "job-marks/red-mage-light.png",
+      "contentBounds": [
+        233,
+        96,
+        726,
+        856
+      ],
+      "contentSize": [
+        493,
+        760
+      ],
+      "sourceSize": [
+        133,
+        205
+      ],
+      "scaleFactor": 3.70732,
+      "opaqueAreaPx": 100829
+    },
+    {
+      "id": "pictomancer",
+      "nameJa": "ピクトマンサー",
+      "role": "MAGICAL RANGED DPS",
+      "dark": "job-marks/pictomancer-dark.png",
+      "light": "job-marks/pictomancer-light.png",
+      "contentBounds": [
+        196,
+        186,
+        921,
+        780
+      ],
+      "contentSize": [
+        725,
+        594
+      ],
+      "sourceSize": [
+        256,
+        210
+      ],
+      "scaleFactor": 2.83077,
+      "opaqueAreaPx": 151098
+    },
+    {
+      "id": "blue-mage",
+      "nameJa": "青魔道士",
+      "role": "MAGICAL RANGED DPS",
+      "dark": "job-marks/blue-mage-dark.png",
+      "light": "job-marks/blue-mage-light.png",
+      "contentBounds": [
+        107,
+        265,
+        867,
+        840
+      ],
+      "contentSize": [
+        760,
+        575
+      ],
+      "sourceSize": [
+        205,
+        155
+      ],
+      "scaleFactor": 3.70732,
+      "opaqueAreaPx": 141257
+    },
+    {
+      "id": "carpenter",
+      "nameJa": "木工師",
+      "role": "CRAFTER",
+      "dark": "job-marks/carpenter-dark.png",
+      "light": "job-marks/carpenter-light.png",
+      "contentBounds": [
+        163,
+        154,
+        864,
+        914
+      ],
+      "contentSize": [
+        701,
+        760
+      ],
+      "sourceSize": [
+        189,
+        205
+      ],
+      "scaleFactor": 3.70732,
+      "opaqueAreaPx": 147293
+    },
+    {
+      "id": "blacksmith",
+      "nameJa": "鍛冶師",
+      "role": "CRAFTER",
+      "dark": "job-marks/blacksmith-dark.png",
+      "light": "job-marks/blacksmith-light.png",
+      "contentBounds": [
+        193,
+        352,
+        854,
+        733
+      ],
+      "contentSize": [
+        661,
+        381
+      ],
+      "sourceSize": [
+        205,
+        118
+      ],
+      "scaleFactor": 3.22482,
+      "opaqueAreaPx": 147674
+    },
+    {
+      "id": "armorer",
+      "nameJa": "甲冑師",
+      "role": "CRAFTER",
+      "dark": "job-marks/armorer-dark.png",
+      "light": "job-marks/armorer-light.png",
+      "contentBounds": [
+        267,
+        222,
+        744,
+        822
+      ],
+      "contentSize": [
+        477,
+        600
+      ],
+      "sourceSize": [
+        163,
+        205
+      ],
+      "scaleFactor": 2.92683,
+      "opaqueAreaPx": 169756
+    },
+    {
+      "id": "goldsmith",
+      "nameJa": "彫金師",
+      "role": "CRAFTER",
+      "dark": "job-marks/goldsmith-dark.png",
+      "light": "job-marks/goldsmith-light.png",
+      "contentBounds": [
+        132,
+        225,
+        892,
+        688
+      ],
+      "contentSize": [
+        760,
+        463
+      ],
+      "sourceSize": [
+        205,
+        125
+      ],
+      "scaleFactor": 3.70732,
+      "opaqueAreaPx": 129567
+    },
+    {
+      "id": "leatherworker",
+      "nameJa": "革細工師",
+      "role": "CRAFTER",
+      "dark": "job-marks/leatherworker-dark.png",
+      "light": "job-marks/leatherworker-light.png",
+      "contentBounds": [
+        212,
+        211,
+        812,
+        799
+      ],
+      "contentSize": [
+        600,
+        588
+      ],
+      "sourceSize": [
+        205,
+        201
+      ],
+      "scaleFactor": 2.92683,
+      "opaqueAreaPx": 207774
+    },
+    {
+      "id": "weaver",
+      "nameJa": "裁縫師",
+      "role": "CRAFTER",
+      "dark": "job-marks/weaver-dark.png",
+      "light": "job-marks/weaver-light.png",
+      "contentBounds": [
+        181,
+        182,
+        845,
+        804
+      ],
+      "contentSize": [
+        664,
+        622
+      ],
+      "sourceSize": [
+        205,
+        192
+      ],
+      "scaleFactor": 3.2402,
+      "opaqueAreaPx": 150000
+    },
+    {
+      "id": "alchemist",
+      "nameJa": "錬金術師",
+      "role": "CRAFTER",
+      "dark": "job-marks/alchemist-dark.png",
+      "light": "job-marks/alchemist-light.png",
+      "contentBounds": [
+        224,
+        176,
+        780,
+        776
+      ],
+      "contentSize": [
+        556,
+        600
+      ],
+      "sourceSize": [
+        190,
+        205
+      ],
+      "scaleFactor": 2.92683,
+      "opaqueAreaPx": 168693
+    },
+    {
+      "id": "culinarian",
+      "nameJa": "調理師",
+      "role": "CRAFTER",
+      "dark": "job-marks/culinarian-dark.png",
+      "light": "job-marks/culinarian-light.png",
+      "contentBounds": [
+        211,
+        339,
+        811,
+        673
+      ],
+      "contentSize": [
+        600,
+        334
+      ],
+      "sourceSize": [
+        205,
+        114
+      ],
+      "scaleFactor": 2.92683,
+      "opaqueAreaPx": 151884
+    },
+    {
+      "id": "miner",
+      "nameJa": "採掘師",
+      "role": "GATHERER",
+      "dark": "job-marks/miner-dark.png",
+      "light": "job-marks/miner-light.png",
+      "contentBounds": [
+        129,
+        128,
+        870,
+        888
+      ],
+      "contentSize": [
+        741,
+        760
+      ],
+      "sourceSize": [
+        200,
+        205
+      ],
+      "scaleFactor": 3.70732,
+      "opaqueAreaPx": 99735
+    },
+    {
+      "id": "botanist",
+      "nameJa": "園芸師",
+      "role": "GATHERER",
+      "dark": "job-marks/botanist-dark.png",
+      "light": "job-marks/botanist-light.png",
+      "contentBounds": [
+        209,
+        101,
+        928,
+        861
+      ],
+      "contentSize": [
+        719,
+        760
+      ],
+      "sourceSize": [
+        193,
+        204
+      ],
+      "scaleFactor": 3.72549,
+      "opaqueAreaPx": 126897
+    },
+    {
+      "id": "fisher",
+      "nameJa": "漁師",
+      "role": "GATHERER",
+      "dark": "job-marks/fisher-dark.png",
+      "light": "job-marks/fisher-light.png",
+      "contentBounds": [
+        242,
+        235,
+        879,
+        878
+      ],
+      "contentSize": [
+        637,
+        643
+      ],
+      "sourceSize": [
+        202,
+        204
+      ],
+      "scaleFactor": 3.15121,
+      "opaqueAreaPx": 149088
+    }
+  ]
+}
