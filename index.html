@@ -294,7 +294,7 @@
         <h1>FF14 横型IDビジュアル動画ジェネレータ — ジョブエンブレム外装 試作</h1>
         <p>
           これは<strong>メインジョブ選択に応じて、ジョブマークと対応外装を自動切替する試作</strong>です。<br>
-          `ff14-job-emblem-frames` と `assets/job-marks` を `index.html` と同じ階層に置いてください。ジョブマークはユーザーがアップロードせず、選択したメインジョブから自動で読み込みます。
+          `ff14-job-emblem-frames` と `ff14-job-marks` を `index.html` と同じ階層に置いてください。ジョブマークはユーザーがアップロードせず、選択したメインジョブから自動で読み込みます。
         </p>
       </div>
     </div>
@@ -523,7 +523,8 @@
     }
   };
 
-  const JOB_MARK_ROOT = "./assets/job-marks";
+  const JOB_MARK_ROOT = "./ff14-job-marks/job-marks";
+  const JOB_MARK_THEME = "dark";
 
   const JOBS = {
     "paladin": { nameJa: "ナイト", nameEn: "PALADIN", short: "PLD", genre: "tank", scale: 0.94, offsetX: 0, offsetY: 0 },
@@ -793,7 +794,7 @@
   async function loadSelectedJobMark() {
     const requestId = ++jobMarkLoadRequestId;
     const jobId = currentJobId;
-    const url = `${JOB_MARK_ROOT}/${jobId}.png`;
+    const url = `${JOB_MARK_ROOT}/${jobId}-${JOB_MARK_THEME}.png`;
 
     try {
       const img = await createImage(url);
@@ -802,7 +803,7 @@
     } catch (error) {
       if (requestId !== jobMarkLoadRequestId || jobId !== currentJobId) return;
       jobMarkImage = null;
-      console.warn(`ジョブマークが未配置です: ${url}`);
+      console.warn(`ジョブマークを読み込めませんでした: ${url}`);
     }
   }
 
@@ -1495,7 +1496,7 @@
         ジャンル: <strong>${GENRES[currentGenre].label}</strong> /
         プリセット: <strong>${positionSelect.options[positionSelect.selectedIndex].text}</strong> /
         サイズ: <strong>${sizeSelect.value}px</strong><br>
-        表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark / 演出: black hold → emblem → SS reveal → long hold → emblem → black hold
+        表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark / mark: ${currentJobId}-${JOB_MARK_THEME}.png / 演出: black hold → emblem → SS reveal → long hold → emblem → black hold
       `);
     } catch (err) {
       if (requestId !== loadRequestId || requestedGenre !== currentGenre) return;
