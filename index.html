@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FF14 Job Emblem Frame Preview</title>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FF14 Horizontal ID Visual Generator</title>
 <style>
   :root {
     --bg: #0a0d14;
@@ -477,6 +478,42 @@
     color: #ffb4ba;
   }
 
+
+  .details-panel {
+    margin-top: 16px;
+    padding: 18px;
+  }
+
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+    align-items: start;
+  }
+
+  .details-grid > .section-title {
+    grid-column: 1 / -1;
+    margin-top: 2px;
+  }
+
+  .details-grid > .field:has(.subjob-box),
+  .details-grid > .field:has(.playstyle-panel) {
+    grid-column: 1 / -1;
+  }
+
+  .details-grid .subjob-box {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-height: 300px;
+  }
+
+  .details-grid .playstyle-panel {
+    max-height: none;
+  }
+
+  .details-grid .playstyle-items {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   @media (max-width: 1100px) {
     .layout {
       grid-template-columns: 1fr;
@@ -484,217 +521,184 @@
     .controls {
       position: static;
     }
+    .details-grid {
+      grid-template-columns: 1fr;
+    }
+    .details-grid > .section-title,
+    .details-grid > .field:has(.subjob-box),
+    .details-grid > .field:has(.playstyle-panel) {
+      grid-column: 1;
+    }
+    .details-grid .subjob-box,
+    .details-grid .playstyle-items {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="titlebox">
-        <h1>FF14 横型IDビジュアル動画ジェネレータ — 正式入力画面 基礎実装</h1>
-        <p>
-          キャラクター情報とジョブ情報を入力し、12秒の横型IDビジュアルへ反映する基礎実装です。<br>
-          `ff14-job-emblem-frames` と `ff14-job-marks` は `index.html` と同じ階層で使用します。
-        </p>
-      </div>
-    </div>
-
-    <div class="layout">
-      <div class="panel controls">
-        <h2>CONTROL</h2>
-
-        <div class="grid">
-          <div class="section-title">IDENTITY / ORIGIN</div>
-
-          <div class="field">
-            <label for="characterNameInput">キャラクター名</label>
-            <input id="characterNameInput" type="text" maxlength="32" value="Luca Traveler" placeholder="Character Name" autocomplete="off" />
-          </div>
-
-          <div class="field">
-            <label for="dataCenterSelect">DC / World</label>
-            <select id="dataCenterSelect"></select>
-          </div>
-
-          <div class="field">
-            <label for="raceSelect">種族 / 部族</label>
-            <select id="raceSelect"></select>
-          </div>
-
-          <div class="section-title">JOB</div>
-
-          <div class="field">
-            <label for="mainJobSelect">メインジョブ</label>
-            <select id="mainJobSelect">
-              <optgroup label="TANK">
-                <option value="paladin">ナイト / PALADIN</option>
-                <option value="warrior">戦士 / WARRIOR</option>
-                <option value="dark-knight" selected>暗黒騎士 / DARK KNIGHT</option>
-                <option value="gunbreaker">ガンブレイカー / GUNBREAKER</option>
-              </optgroup>
-              <optgroup label="HEALER">
-                <option value="white-mage">白魔道士 / WHITE MAGE</option>
-                <option value="scholar">学者 / SCHOLAR</option>
-                <option value="astrologian">占星術師 / ASTROLOGIAN</option>
-                <option value="sage">賢者 / SAGE</option>
-              </optgroup>
-              <optgroup label="MELEE DPS">
-                <option value="monk">モンク / MONK</option>
-                <option value="dragoon">竜騎士 / DRAGOON</option>
-                <option value="ninja">忍者 / NINJA</option>
-                <option value="samurai">侍 / SAMURAI</option>
-                <option value="reaper">リーパー / REAPER</option>
-                <option value="viper">ヴァイパー / VIPER</option>
-              </optgroup>
-              <optgroup label="PHYSICAL RANGED DPS">
-                <option value="bard">吟遊詩人 / BARD</option>
-                <option value="machinist">機工士 / MACHINIST</option>
-                <option value="dancer">踊り子 / DANCER</option>
-              </optgroup>
-              <optgroup label="MAGICAL RANGED DPS">
-                <option value="black-mage">黒魔道士 / BLACK MAGE</option>
-                <option value="summoner">召喚士 / SUMMONER</option>
-                <option value="red-mage">赤魔道士 / RED MAGE</option>
-                <option value="pictomancer">ピクトマンサー / PICTOMANCER</option>
-                <option value="blue-mage">青魔道士 / BLUE MAGE</option>
-              </optgroup>
-              <optgroup label="CRAFTER">
-                <option value="carpenter">木工師 / CARPENTER</option>
-                <option value="blacksmith">鍛冶師 / BLACKSMITH</option>
-                <option value="armorer">甲冑師 / ARMORER</option>
-                <option value="goldsmith">彫金師 / GOLDSMITH</option>
-                <option value="leatherworker">革細工師 / LEATHERWORKER</option>
-                <option value="weaver">裁縫師 / WEAVER</option>
-                <option value="alchemist">錬金術師 / ALCHEMIST</option>
-                <option value="culinarian">調理師 / CULINARIAN</option>
-              </optgroup>
-              <optgroup label="GATHERER">
-                <option value="miner">採掘師 / MINER</option>
-                <option value="botanist">園芸師 / BOTANIST</option>
-                <option value="fisher">漁師 / FISHER</option>
-              </optgroup>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>サブジョブ（複数選択）</label>
-            <div id="subJobBox" class="subjob-box"></div>
-            <div id="subJobSummary" class="selection-summary">未選択</div>
-            <div class="hint">メインジョブと同じジョブは選択できません。選択内容は後続の復元用IDコードへ保存する予定です。</div>
-          </div>
-
-          <div class="section-title">PLAY STYLE</div>
-
-          <div class="field">
-            <label>プレイスタイル（3〜15項目）</label>
-            <div id="playStyleBox" class="playstyle-panel"></div>
-            <div class="playstyle-actions">
-              <div id="playStyleCount" class="playstyle-count warning">0 / 15｜あと3項目選択してください</div>
-              <button id="clearPlayStylesBtn" type="button" class="secondary compact-button">全解除</button>
-            </div>
-            <div id="playStyleSummary" class="selection-summary">未選択</div>
-            <div class="hint">最低3項目、推奨5〜10項目、最大15項目。分析計算は次の段階で実装します。</div>
-          </div>
-
-          <div class="section-title">VISUAL / PREVIEW</div>
-
-          <div class="row2">
-            <div class="field">
-              <label for="positionSelect">レイアウトプリセット</label>
-              <select id="positionSelect">
-                <option value="A">PRESET A｜人物左・エンブレム右</option>
-                <option value="B">PRESET B｜人物右・エンブレム左</option>
-                <option value="C">PRESET C｜四隅配置・エンブレム中央</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="sizeSelect">基準サイズ</label>
-              <select id="sizeSelect">
-                <option value="960">小型 960px</option>
-                <option value="1040" selected>標準 1040px</option>
-                <option value="1120">大型 1120px</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row2">
-            <div class="field">
-              <label for="frameOpacity">外装透明度補正 <span class="value" id="frameOpacityValue">1.00</span></label>
-              <input id="frameOpacity" type="range" min="0.50" max="1.40" step="0.01" value="1.00" />
-            </div>
-            <div class="field">
-              <label for="glowBoost">発光補正 <span class="value" id="glowBoostValue">1.00</span></label>
-              <input id="glowBoost" type="range" min="0.50" max="4.00" step="0.01" value="1.00" />
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="bgInput">背景SSアップロード</label>
-            <input id="bgInput" type="file" accept="image/*" />
-          </div>
-
-          <div class="field">
-            <label for="ssScale">SS拡大率 <span class="value" id="ssScaleValue">100%</span></label>
-            <input id="ssScale" type="range" min="1.00" max="3.00" step="0.01" value="1.00" />
-          </div>
-
-          <div class="ss-tools">
-            <button id="flipSsBtn" type="button" class="secondary">SSを左右反転</button>
-            <button id="resetSsBtn" type="button" class="secondary">SS位置をリセット</button>
-          </div>
-
-          <div class="checkrow">
-            <label class="check">
-              <input type="checkbox" id="showGuides" checked />
-              <span>情報UIガイド表示</span>
-            </label>
-            <label class="check">
-              <input type="checkbox" id="showOverlayText" checked />
-              <span>仮UIテキスト表示</span>
-            </label>
-            <label class="check">
-              <input type="checkbox" id="showJobMark" checked />
-              <span>中央ジョブマーク表示</span>
-            </label>
-          </div>
-
-          <div class="btns">
-            <button id="playPauseBtn">一時停止</button>
-            <button id="restartBtn" class="secondary">12秒ループを先頭から再生</button>
-          </div>
-
-          <div class="smallnote">
-            <strong>この試作で確認できること</strong><br>
-            ・レイヤー順<br>
-            ・標準サイズと配置位置<br>
-            ・ジャンル別の回転方向と速度差<br>
-            ・起動 → 待機 → 終了の12秒ループ<br>
-            ・glow-mask の着色発光<br>
-            ・SSのドラッグ移動／ホイール拡大縮小／左右反転<br><br>
-            <span class="danger">※ preview.png は使っていません。</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel previewpanel">
-        <div class="canvasbox">
-          <canvas id="previewCanvas" width="1920" height="1080"></canvas>
-        </div>
-
-        <div class="meta">
-          <div class="info" id="statusText">
+<div class="wrap">
+<div class="topbar">
+<div class="titlebox">
+<h1>FF14 横型IDビジュアル動画ジェネレータ — 正式入力UI</h1>
+<p>左側にプレビュー操作、下部にキャラクター情報入力をまとめた構成です。</p>
+</div>
+</div>
+<div class="layout">
+<div class="panel controls">
+<h2>PREVIEW CONTROL</h2>
+<div class="grid"><div class="section-title">VISUAL / PREVIEW</div><div class="row2">
+<div class="field">
+<label for="positionSelect">レイアウトプリセット</label>
+<select id="positionSelect">
+<option value="A">PRESET A｜人物左・エンブレム右</option>
+<option value="B">PRESET B｜人物右・エンブレム左</option>
+<option value="C">PRESET C｜四隅配置・エンブレム中央</option>
+</select>
+</div>
+<div class="field">
+<label for="sizeSelect">基準サイズ</label>
+<select id="sizeSelect">
+<option value="960">小型 960px</option>
+<option selected="" value="1040">標準 1040px</option>
+<option value="1120">大型 1120px</option>
+</select>
+</div>
+</div><div class="row2">
+<div class="field">
+<label for="frameOpacity">外装透明度補正 <span class="value" id="frameOpacityValue">1.00</span></label>
+<input id="frameOpacity" max="1.40" min="0.50" step="0.01" type="range" value="1.00"/>
+</div>
+<div class="field">
+<label for="glowBoost">発光補正 <span class="value" id="glowBoostValue">1.00</span></label>
+<input id="glowBoost" max="4.00" min="0.50" step="0.01" type="range" value="1.00"/>
+</div>
+</div><div class="field">
+<label for="bgInput">背景SSアップロード</label>
+<input accept="image/*" id="bgInput" type="file"/>
+</div><div class="field">
+<label for="ssScale">SS拡大率 <span class="value" id="ssScaleValue">100%</span></label>
+<input id="ssScale" max="3.00" min="1.00" step="0.01" type="range" value="1.00"/>
+</div><div class="ss-tools">
+<button class="secondary" id="flipSsBtn" type="button">SSを左右反転</button>
+<button class="secondary" id="resetSsBtn" type="button">SS位置をリセット</button>
+</div><div class="checkrow">
+<label class="check">
+<input checked="" id="showGuides" type="checkbox"/>
+<span>情報UIガイド表示</span>
+</label>
+<label class="check">
+<input checked="" id="showOverlayText" type="checkbox"/>
+<span>仮UIテキスト表示</span>
+</label>
+<label class="check">
+<input checked="" id="showJobMark" type="checkbox"/>
+<span>中央ジョブマーク表示</span>
+</label>
+</div><div class="btns">
+<button id="playPauseBtn">一時停止</button>
+<button class="secondary" id="restartBtn">12秒ループを先頭から再生</button>
+</div><div class="smallnote">
+<strong>この試作で確認できること</strong><br/>
+            ・レイヤー順<br/>
+            ・標準サイズと配置位置<br/>
+            ・ジャンル別の回転方向と速度差<br/>
+            ・起動 → 待機 → 終了の12秒ループ<br/>
+            ・glow-mask の着色発光<br/>
+            ・SSのドラッグ移動／ホイール拡大縮小／左右反転<br/><br/>
+<span class="danger">※ preview.png は使っていません。</span>
+</div></div>
+</div>
+<div class="panel previewpanel">
+<div class="canvasbox">
+<canvas height="1080" id="previewCanvas" width="1920"></canvas>
+</div>
+<div class="meta">
+<div class="info" id="statusText">
             読み込み待機中…
           </div>
-          <div class="pill">
-            <span class="accentdot" id="accentDot"></span>
-            <span id="accentLabel">ACCENT</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
+<div class="pill">
+<span class="accentdot" id="accentDot"></span>
+<span id="accentLabel">ACCENT</span>
+</div>
+</div>
+</div>
+</div><div class="panel details-panel"><h2>CHARACTER DATA</h2><div class="details-grid"><div class="section-title">IDENTITY / ORIGIN</div><div class="field">
+<label for="characterNameInput">キャラクター名</label>
+<input autocomplete="off" id="characterNameInput" maxlength="32" placeholder="Character Name" type="text" value="Luca Traveler"/>
+</div><div class="field">
+<label for="dataCenterSelect">DC / World</label>
+<select id="dataCenterSelect"></select>
+</div><div class="field">
+<label for="raceSelect">種族 / 部族</label>
+<select id="raceSelect"></select>
+</div><div class="section-title">JOB</div><div class="field">
+<label for="mainJobSelect">メインジョブ</label>
+<select id="mainJobSelect">
+<optgroup label="TANK">
+<option value="paladin">ナイト / PALADIN</option>
+<option value="warrior">戦士 / WARRIOR</option>
+<option selected="" value="dark-knight">暗黒騎士 / DARK KNIGHT</option>
+<option value="gunbreaker">ガンブレイカー / GUNBREAKER</option>
+</optgroup>
+<optgroup label="HEALER">
+<option value="white-mage">白魔道士 / WHITE MAGE</option>
+<option value="scholar">学者 / SCHOLAR</option>
+<option value="astrologian">占星術師 / ASTROLOGIAN</option>
+<option value="sage">賢者 / SAGE</option>
+</optgroup>
+<optgroup label="MELEE DPS">
+<option value="monk">モンク / MONK</option>
+<option value="dragoon">竜騎士 / DRAGOON</option>
+<option value="ninja">忍者 / NINJA</option>
+<option value="samurai">侍 / SAMURAI</option>
+<option value="reaper">リーパー / REAPER</option>
+<option value="viper">ヴァイパー / VIPER</option>
+</optgroup>
+<optgroup label="PHYSICAL RANGED DPS">
+<option value="bard">吟遊詩人 / BARD</option>
+<option value="machinist">機工士 / MACHINIST</option>
+<option value="dancer">踊り子 / DANCER</option>
+</optgroup>
+<optgroup label="MAGICAL RANGED DPS">
+<option value="black-mage">黒魔道士 / BLACK MAGE</option>
+<option value="summoner">召喚士 / SUMMONER</option>
+<option value="red-mage">赤魔道士 / RED MAGE</option>
+<option value="pictomancer">ピクトマンサー / PICTOMANCER</option>
+<option value="blue-mage">青魔道士 / BLUE MAGE</option>
+</optgroup>
+<optgroup label="CRAFTER">
+<option value="carpenter">木工師 / CARPENTER</option>
+<option value="blacksmith">鍛冶師 / BLACKSMITH</option>
+<option value="armorer">甲冑師 / ARMORER</option>
+<option value="goldsmith">彫金師 / GOLDSMITH</option>
+<option value="leatherworker">革細工師 / LEATHERWORKER</option>
+<option value="weaver">裁縫師 / WEAVER</option>
+<option value="alchemist">錬金術師 / ALCHEMIST</option>
+<option value="culinarian">調理師 / CULINARIAN</option>
+</optgroup>
+<optgroup label="GATHERER">
+<option value="miner">採掘師 / MINER</option>
+<option value="botanist">園芸師 / BOTANIST</option>
+<option value="fisher">漁師 / FISHER</option>
+</optgroup>
+</select>
+</div><div class="field">
+<label>サブジョブ（複数選択）</label>
+<div class="subjob-box" id="subJobBox"></div>
+<div class="selection-summary" id="subJobSummary">未選択</div>
+<div class="hint">メインジョブと同じジョブは選択できません。選択内容は後続の復元用IDコードへ保存する予定です。</div>
+</div><div class="section-title">PLAY STYLE</div><div class="field">
+<label>プレイスタイル（3〜15項目）</label>
+<div class="playstyle-panel" id="playStyleBox"></div>
+<div class="playstyle-actions">
+<div class="playstyle-count warning" id="playStyleCount">0 / 15｜あと3項目選択してください</div>
+<button class="secondary compact-button" id="clearPlayStylesBtn" type="button">全解除</button>
+</div>
+<div class="selection-summary" id="playStyleSummary">未選択</div>
+<div class="hint">最低3項目、推奨5〜10項目、最大15項目。分析計算は次の段階で実装します。</div>
+</div></div></div>
+</div>
 <script>
 (() => {
   const ASSET_ROOT = "./ff14-job-emblem-frames";
