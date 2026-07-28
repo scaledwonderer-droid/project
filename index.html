@@ -117,12 +117,31 @@
   select,
   input[type="text"],
   input[type="file"] {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(160, 220, 255, 0.14);
-    color: var(--text);
+    background: #0c1624;
+    border: 1px solid rgba(103, 211, 255, 0.34);
+    color: #f2fbff;
     border-radius: 10px;
     padding: 10px 12px;
     font-size: 13px;
+  }
+
+  select {
+    color-scheme: dark;
+    cursor: pointer;
+  }
+
+  select option,
+  select optgroup {
+    background: #101b2a;
+    color: #f2fbff;
+  }
+
+  select:focus,
+  input[type="text"]:focus,
+  input[type="file"]:focus {
+    outline: none;
+    border-color: rgba(103, 211, 255, 0.82);
+    box-shadow: 0 0 0 2px rgba(103, 211, 255, 0.12);
   }
 
   input[type="range"] {
@@ -381,26 +400,14 @@
             <input id="characterNameInput" type="text" maxlength="32" value="Luca Traveler" placeholder="Character Name" autocomplete="off" />
           </div>
 
-          <div class="row2">
-            <div class="field">
-              <label for="dataCenterSelect">DC</label>
-              <select id="dataCenterSelect"></select>
-            </div>
-            <div class="field">
-              <label for="worldSelect">World</label>
-              <select id="worldSelect"></select>
-            </div>
+          <div class="field">
+            <label for="dataCenterSelect">DC / World</label>
+            <select id="dataCenterSelect"></select>
           </div>
 
-          <div class="row2">
-            <div class="field">
-              <label for="raceSelect">種族</label>
-              <select id="raceSelect"></select>
-            </div>
-            <div class="field">
-              <label for="clanSelect">部族</label>
-              <select id="clanSelect"></select>
-            </div>
+          <div class="field">
+            <label for="raceSelect">種族 / 部族</label>
+            <select id="raceSelect"></select>
           </div>
 
           <div class="section-title">JOB</div>
@@ -494,7 +501,7 @@
             </div>
             <div class="field">
               <label for="glowBoost">発光補正 <span class="value" id="glowBoostValue">1.00</span></label>
-              <input id="glowBoost" type="range" min="0.50" max="1.80" step="0.01" value="1.00" />
+              <input id="glowBoost" type="range" min="0.50" max="4.00" step="0.01" value="1.00" />
             </div>
           </div>
 
@@ -576,9 +583,7 @@
 
   const characterNameInput = document.getElementById("characterNameInput");
   const dataCenterSelect = document.getElementById("dataCenterSelect");
-  const worldSelect = document.getElementById("worldSelect");
   const raceSelect = document.getElementById("raceSelect");
-  const clanSelect = document.getElementById("clanSelect");
   const mainJobSelect = document.getElementById("mainJobSelect");
   const subJobBox = document.getElementById("subJobBox");
   const subJobSummary = document.getElementById("subJobSummary");
@@ -860,20 +865,33 @@
     });
   }
 
-  function updateWorldOptions() {
-    profileState.dataCenter = dataCenterSelect.value;
-    const worlds = DATA_CENTERS[profileState.dataCenter] || [];
-    const selected = worlds.includes(profileState.world) ? profileState.world : worlds[0];
-    populateSelect(worldSelect, worlds, selected);
-    profileState.world = worldSelect.value || "";
+  function populateGroupedPairSelect(select, groups, selectedPair) {
+    select.innerHTML = "";
+    Object.entries(groups).forEach(([groupName, items]) => {
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = groupName;
+      items.forEach(item => {
+        const pairValue = `${groupName}|${item}`;
+        const option = document.createElement("option");
+        option.value = pairValue;
+        option.textContent = `${groupName} / ${item}`;
+        if (pairValue === selectedPair) option.selected = true;
+        optgroup.appendChild(option);
+      });
+      select.appendChild(optgroup);
+    });
   }
 
-  function updateClanOptions() {
-    profileState.race = raceSelect.value;
-    const clans = RACES[profileState.race] || [];
-    const selected = clans.includes(profileState.clan) ? profileState.clan : clans[0];
-    populateSelect(clanSelect, clans, selected);
-    profileState.clan = clanSelect.value || "";
+  function applyDcWorldSelection() {
+    const [dataCenter = "", world = ""] = dataCenterSelect.value.split("|");
+    profileState.dataCenter = dataCenter;
+    profileState.world = world;
+  }
+
+  function applyRaceClanSelection() {
+    const [race = "", clan = ""] = raceSelect.value.split("|");
+    profileState.race = race;
+    profileState.clan = clan;
   }
 
   function renderSubJobOptions() {
@@ -908,10 +926,18 @@
   }
 
   function initializeFormalInputs() {
-    populateSelect(dataCenterSelect, Object.keys(DATA_CENTERS), profileState.dataCenter);
-    updateWorldOptions();
-    populateSelect(raceSelect, Object.keys(RACES), profileState.race);
-    updateClanOptions();
+    populateGroupedPairSelect(
+      dataCenterSelect,
+      DATA_CENTERS,
+      `${profileState.dataCenter}|${profileState.world}`
+    );
+    applyDcWorldSelection();
+    populateGroupedPairSelect(
+      raceSelect,
+      RACES,
+      `${profileState.race}|${profileState.clan}`
+    );
+    applyRaceClanSelection();
     characterNameInput.value = profileState.characterName;
     renderSubJobOptions();
   }
@@ -1778,21 +1804,9 @@
     profileState.characterName = characterNameInput.value.trim();
   });
 
-  dataCenterSelect.addEventListener("change", () => {
-    updateWorldOptions();
-  });
+  dataCenterSelect.addEventListener("change", applyDcWorldSelection);
 
-  worldSelect.addEventListener("change", () => {
-    profileState.world = worldSelect.value;
-  });
-
-  raceSelect.addEventListener("change", () => {
-    updateClanOptions();
-  });
-
-  clanSelect.addEventListener("change", () => {
-    profileState.clan = clanSelect.value;
-  });
+  raceSelect.addEventListener("change", applyRaceClanSelection);
 
   mainJobSelect.addEventListener("change", async () => {
     currentJobId = mainJobSelect.value;
