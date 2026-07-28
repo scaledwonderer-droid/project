@@ -446,7 +446,7 @@
       label: "TANK",
       accent: "#56CFFF",
       outerDir: 1,
-      outerPeriod: 28,
+      outerPeriod: 42,
       innerKickDeg: -18,
       pulsePeriod: 2400,
       hasMiddle: false
@@ -509,14 +509,41 @@
 
   const TIMINGS = {
     frameBack: { inStart: 350, inEnd: 800, outStart: 8500, outEnd: 9550 },
-    ringOuter: { inStart: 550, inEnd: 1400, outStart: 8400, outEnd: 9500 },
-    ringMiddle: { inStart: 800, inEnd: 1750, outStart: 8350, outEnd: 9450 },
-    ringInner: { inStart: 800, inEnd: 1750, outStart: 8300, outEnd: 9400 },
-    parts: { inStart: 1100, inEnd: 2200, outStart: 8200, outEnd: 9300 },
-    markings: { inStart: 1100, inEnd: 2200, outStart: 8200, outEnd: 9300 },
-    effects: { inStart: 1450, inEnd: 2600, outStart: 8100, outEnd: 9200 },
-    glow: { inStart: 1500, inEnd: 2800, outStart: 8200, outEnd: 9400 },
-    jobMark: { inStart: 2200, inEnd: 2800, outStart: 8600, outEnd: 9800 }
+    ringOuter: { inStart: 550, inEnd: 1400, outStart: 8500, outEnd: 9550 },
+    ringMiddle: { inStart: 800, inEnd: 1750, outStart: 8500, outEnd: 9550 },
+    ringInner: { inStart: 800, inEnd: 1750, outStart: 8500, outEnd: 9550 },
+    parts: { inStart: 1100, inEnd: 2200, outStart: 8500, outEnd: 9550 },
+    markings: { inStart: 1100, inEnd: 2200, outStart: 8500, outEnd: 9550 },
+    effects: { inStart: 1450, inEnd: 2600, outStart: 8500, outEnd: 9550 },
+    glow: { inStart: 1500, inEnd: 2800, outStart: 8500, outEnd: 9550 },
+    jobMark: { inStart: 1500, inEnd: 2200, outStart: 8500, outEnd: 9550 }
+  };
+
+  const PRESENTATION = {
+    ss: { inStart: 900, inEnd: 2300, outStart: 8200, outEnd: 9400 },
+    ui: { inStart: 1400, inEnd: 2500, outStart: 8000, outEnd: 9200 },
+    intro: {
+      frameBack: { inStart: 350, inEnd: 700, outStart: 2350, outEnd: 2800 },
+      ringOuter: { inStart: 450, inEnd: 1000, outStart: 2350, outEnd: 2800 },
+      ringMiddle: { inStart: 600, inEnd: 1150, outStart: 2350, outEnd: 2800 },
+      ringInner: { inStart: 750, inEnd: 1300, outStart: 2350, outEnd: 2800 },
+      parts: { inStart: 950, inEnd: 1700, outStart: 2300, outEnd: 2800 },
+      markings: { inStart: 950, inEnd: 1700, outStart: 2300, outEnd: 2800 },
+      effects: { inStart: 1200, inEnd: 1900, outStart: 2250, outEnd: 2800 },
+      glow: { inStart: 1250, inEnd: 2000, outStart: 2250, outEnd: 2800 },
+      jobMark: { inStart: 1450, inEnd: 2200, outStart: 2200, outEnd: 2800 }
+    },
+    outro: {
+      frameBack: { inStart: 7600, inEnd: 7900, outStart: 9050, outEnd: 9550 },
+      ringOuter: { inStart: 7650, inEnd: 8050, outStart: 9050, outEnd: 9550 },
+      ringMiddle: { inStart: 7750, inEnd: 8150, outStart: 9050, outEnd: 9550 },
+      ringInner: { inStart: 7800, inEnd: 8200, outStart: 9050, outEnd: 9550 },
+      parts: { inStart: 7900, inEnd: 8350, outStart: 9000, outEnd: 9500 },
+      markings: { inStart: 7900, inEnd: 8350, outStart: 9000, outEnd: 9500 },
+      effects: { inStart: 8000, inEnd: 8500, outStart: 8950, outEnd: 9450 },
+      glow: { inStart: 8050, inEnd: 8550, outStart: 8950, outEnd: 9450 },
+      jobMark: { inStart: 8100, inEnd: 8600, outStart: 8900, outEnd: 9400 }
+    }
   };
 
   const cache = {};
@@ -564,6 +591,26 @@
       : 1 - easeInCubic((ms - timing.outStart) / (timing.outEnd - timing.outStart));
 
     return clamp01(inP * outP);
+  }
+
+  function combinedPhase(ms, introTiming, outroTiming) {
+    return clamp01(phaseEnvelope(ms, introTiming) + phaseEnvelope(ms, outroTiming));
+  }
+
+  function getPresentationState(ms) {
+    return {
+      ssAlpha: phaseEnvelope(ms, PRESENTATION.ss),
+      uiAlpha: phaseEnvelope(ms, PRESENTATION.ui),
+      frameBack: combinedPhase(ms, PRESENTATION.intro.frameBack, PRESENTATION.outro.frameBack),
+      ringOuter: combinedPhase(ms, PRESENTATION.intro.ringOuter, PRESENTATION.outro.ringOuter),
+      ringMiddle: combinedPhase(ms, PRESENTATION.intro.ringMiddle, PRESENTATION.outro.ringMiddle),
+      ringInner: combinedPhase(ms, PRESENTATION.intro.ringInner, PRESENTATION.outro.ringInner),
+      parts: combinedPhase(ms, PRESENTATION.intro.parts, PRESENTATION.outro.parts),
+      markings: combinedPhase(ms, PRESENTATION.intro.markings, PRESENTATION.outro.markings),
+      effects: combinedPhase(ms, PRESENTATION.intro.effects, PRESENTATION.outro.effects),
+      glow: combinedPhase(ms, PRESENTATION.intro.glow, PRESENTATION.outro.glow),
+      jobMark: combinedPhase(ms, PRESENTATION.intro.jobMark, PRESENTATION.outro.jobMark)
+    };
   }
 
   function pulse(ms, period, min = 0.0, max = 1.0, phase = 0) {
@@ -683,8 +730,11 @@
     ctx.restore();
   }
 
-  function drawDefaultBackground(ms) {
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  function drawDefaultBackground(ms, alpha = 1) {
+    if (alpha <= 0) return;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
 
     const g = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
     g.addColorStop(0, "#08101a");
@@ -726,6 +776,8 @@
     ctx.save();
     ctx.fillStyle = "rgba(6, 10, 16, 0.28)";
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.restore();
+
     ctx.restore();
   }
 
@@ -873,11 +925,11 @@
     }
   }
 
-  function drawJobMark(cx, cy, alpha) {
+  function drawJobMark(cx, cy, alpha, phase = 1) {
     if (!showJobMark.checked || alpha <= 0) return;
 
     const size = 250;
-    const scale = lerp(1.08, 1.0, phaseEnvelope(getLoopMs(), TIMINGS.jobMark));
+    const scale = lerp(1.08, 1.0, clamp01(phase));
     const drawSize = size * scale;
 
     if (jobMarkImage) {
@@ -967,10 +1019,11 @@
     ctx.restore();
   }
 
-  function drawOverlayTextBlock() {
-    if (!showOverlayText.checked) return;
+  function drawOverlayTextBlock(alpha = 1) {
+    if (!showOverlayText.checked || alpha <= 0) return;
 
     ctx.save();
+    ctx.globalAlpha = alpha;
     ctx.fillStyle = "rgba(235, 247, 255, 0.92)";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
@@ -1091,23 +1144,31 @@
     const size = getSize();
     const frameOpacityMul = Number(frameOpacitySlider.value);
     const glowBoost = Number(glowBoostSlider.value);
+    const presentation = getPresentationState(ms);
+
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.save();
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.restore();
 
     if (bgImage) {
-      drawCoverImage(bgImage, 1);
-      ctx.save();
-      ctx.fillStyle = "rgba(2, 6, 10, 0.18)";
-      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-      ctx.restore();
+      drawCoverImage(bgImage, presentation.ssAlpha);
+      if (presentation.ssAlpha > 0) {
+        ctx.save();
+        ctx.globalAlpha = presentation.ssAlpha;
+        ctx.fillStyle = "rgba(2, 6, 10, 0.18)";
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+        ctx.restore();
+      }
     } else {
-      drawDefaultBackground(ms);
+      drawDefaultBackground(ms, presentation.ssAlpha);
     }
 
     if (!assets || assets.loading || !assets.loaded) {
       drawLoadingState(ms, assets?.error ? "FRAME ASSET LOAD ERROR" : "LOADING FRAME ASSETS");
       return;
     }
-
-    drawGuides(pos);
 
     const outerAngle = degToRad(((ms / 1000) / cfg.outerPeriod) * 360 * cfg.outerDir);
 
@@ -1117,33 +1178,22 @@
     }
 
     let innerAngle = 0;
-    const innerEnv = phaseEnvelope(ms, TIMINGS.ringInner);
     const startupInnerProgress = clamp01((ms - 900) / 950);
 
     if (currentGenre === "tank") {
       innerAngle = degToRad(lerp(cfg.innerKickDeg || 0, 0, easeOutCubic(startupInnerProgress)));
-      innerAngle += degToRad(Math.sin(ms / 800) * 2.0) * innerEnv * 0.18;
+      innerAngle += degToRad(Math.sin(ms / 800) * 2.0) * presentation.ringInner * 0.18;
     } else if (currentGenre === "melee") {
       innerAngle = degToRad(lerp(cfg.innerKickDeg || 0, 0, easeOutCubic(startupInnerProgress)));
-      innerAngle += degToRad(Math.sin(ms / 450) * 1.6) * innerEnv;
+      innerAngle += degToRad(Math.sin(ms / 450) * 1.6) * presentation.ringInner;
     } else if (currentGenre === "magical-ranged") {
       innerAngle = degToRad(lerp(-30, 0, easeOutCubic(startupInnerProgress)));
-      innerAngle += degToRad(Math.sin(ms / 900) * 4.5) * innerEnv;
+      innerAngle += degToRad(Math.sin(ms / 900) * 4.5) * presentation.ringInner;
     } else if (currentGenre === "crafter") {
       innerAngle = degToRad(lerp(cfg.innerKickDeg || 0, 0, easeOutCubic(startupInnerProgress)));
     } else {
       innerAngle = 0;
     }
-
-    const frameBackEnv = phaseEnvelope(ms, TIMINGS.frameBack);
-    const outerEnv = phaseEnvelope(ms, TIMINGS.ringOuter);
-    const middleEnv = phaseEnvelope(ms, TIMINGS.ringMiddle);
-    const innerEnv2 = phaseEnvelope(ms, TIMINGS.ringInner);
-    const partsEnv = phaseEnvelope(ms, TIMINGS.parts);
-    const markingsEnv = phaseEnvelope(ms, TIMINGS.markings);
-    const effectsEnv = phaseEnvelope(ms, TIMINGS.effects);
-    const glowEnv = phaseEnvelope(ms, TIMINGS.glow);
-    const jobMarkEnv = phaseEnvelope(ms, TIMINGS.jobMark);
 
     const pulseValue = pulse(ms, cfg.pulsePeriod, 0.84, 1.12);
     const healerBreathe = currentGenre === "healer" ? pulse(ms, 2800, 1.0, 1.03) : 1.0;
@@ -1161,19 +1211,22 @@
     const item = assets.images;
     const glowCanvas = getTintedGlowCanvas(currentGenre, cfg.accent);
 
-    // --- draw layers in正式順 ---
+    // ガイドはプレビュー用なので常時表示可能
+    drawGuides(pos);
+
+    // --- Emblem intro / outro only ---
     drawLayer(
       item.frameBack,
       pos.x, pos.y, size,
       0,
-      BASE_LAYER_ALPHA.frameBack * frameBackEnv * frameOpacityMul
+      BASE_LAYER_ALPHA.frameBack * presentation.frameBack * frameOpacityMul
     );
 
     drawLayer(
       item.ringOuter,
       pos.x, pos.y, size,
       outerAngle,
-      BASE_LAYER_ALPHA.ringOuter * outerEnv * frameOpacityMul
+      BASE_LAYER_ALPHA.ringOuter * presentation.ringOuter * frameOpacityMul
     );
 
     if (cfg.hasMiddle && item.ringMiddle) {
@@ -1181,7 +1234,7 @@
         item.ringMiddle,
         pos.x, pos.y, size,
         middleAngle,
-        BASE_LAYER_ALPHA.ringMiddle * middleEnv * frameOpacityMul
+        BASE_LAYER_ALPHA.ringMiddle * presentation.ringMiddle * frameOpacityMul
       );
     }
 
@@ -1189,7 +1242,7 @@
       item.ringInner,
       pos.x, pos.y, size,
       innerAngle,
-      BASE_LAYER_ALPHA.ringInner * innerEnv2 * frameOpacityMul,
+      BASE_LAYER_ALPHA.ringInner * presentation.ringInner * frameOpacityMul,
       healerBreathe
     );
 
@@ -1197,7 +1250,7 @@
       item.parts,
       pos.x, pos.y, size,
       0,
-      BASE_LAYER_ALPHA.parts * partsEnv * frameOpacityMul,
+      BASE_LAYER_ALPHA.parts * presentation.parts * frameOpacityMul,
       1,
       partsOffset.dx,
       partsOffset.dy
@@ -1207,7 +1260,7 @@
       item.markings,
       pos.x, pos.y, size,
       0,
-      BASE_LAYER_ALPHA.markings * markingsEnv * frameOpacityMul
+      BASE_LAYER_ALPHA.markings * presentation.markings * frameOpacityMul
     );
 
     drawEffectsSpecial(
@@ -1215,20 +1268,21 @@
       item.effects,
       pos.x, pos.y, size,
       ms,
-      BASE_LAYER_ALPHA.effects * effectsEnv * frameOpacityMul
+      BASE_LAYER_ALPHA.effects * presentation.effects * frameOpacityMul
     );
 
     drawTintedGlow(
       glowCanvas,
       pos.x, pos.y, size,
       0,
-      glowEnv * pulseValue,
+      presentation.glow * pulseValue,
       glowBoost
     );
 
-    drawJobMark(pos.x, pos.y, BASE_LAYER_ALPHA.jobMark * jobMarkEnv);
+    drawJobMark(pos.x, pos.y, BASE_LAYER_ALPHA.jobMark * presentation.jobMark, presentation.jobMark);
 
-    drawOverlayTextBlock();
+    // SS reveal 完了後の鑑賞時間でUIを見せる
+    drawOverlayTextBlock(presentation.uiAlpha);
   }
 
   async function ensureCurrentGenreLoaded() {
@@ -1255,7 +1309,7 @@
         ジャンル: <strong>${GENRES[currentGenre].label}</strong> /
         配置: <strong>${positionSelect.options[positionSelect.selectedIndex].text}</strong> /
         サイズ: <strong>${sizeSelect.value}px</strong><br>
-        表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark
+        表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark / 演出: black → emblem → SS → hold → emblem → black
       `);
     } catch (err) {
       if (requestId !== loadRequestId || requestedGenre !== currentGenre) return;
