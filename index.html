@@ -959,18 +959,29 @@
   function calculatePlayStyleAnalysis() {
     const selected = [...profileState.playStyles];
     if (selected.length < PLAY_STYLE_MIN) {
-      profileState.analysis = { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [] };
+      profileState.analysis = { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [], correction: null };
       return profileState.analysis;
     }
+
+    // 選択順で結果が変わらないよう、同系統内では戦闘側ほど先、生活側ほど先に評価する。
+    // これにより、その系統を最も強く表す項目へ100%の重みが付く。
+    const ordered = selected
+      .map((name, order) => ({ name, order, rule: PLAY_STYLE_RULES[name] }))
+      .filter(item => item.rule)
+      .sort((a, b) => {
+        if (a.rule.family !== b.rule.family) return a.order - b.order;
+        const aAbs = Math.abs(a.rule.score);
+        const bAbs = Math.abs(b.rule.score);
+        if (aAbs !== bAbs) return bAbs - aAbs;
+        return a.rule.score - b.rule.score;
+      });
 
     const familyCounts = new Map();
     let weightedScoreTotal = 0;
     let weightTotal = 0;
     const details = [];
 
-    selected.forEach(name => {
-      const rule = PLAY_STYLE_RULES[name];
-      if (!rule) return;
+    ordered.forEach(({ name, rule }) => {
       let rate = 1;
       if (rule.family !== "independent") {
         const index = familyCounts.get(rule.family) || 0;
@@ -983,15 +994,36 @@
     });
 
     const rawScore = weightTotal ? weightedScoreTotal / weightTotal : 0;
-    const score = Math.max(-10, Math.min(10, rawScore));
+    let correctedScore = rawScore;
+    let correction = null;
+
+    // 高難度＋固定活動は、単なる平均ではなく「継続的な高難度活動」を示す支配的特徴として扱う。
+    if (selected.includes("高難度") && selected.includes("固定活動")) {
+      const additionalHardcore = [
+        "レイド", "討滅戦", "アライアンスレイド", "PvP",
+        "フロントライン", "クリスタルコンフリクト", "装備集め"
+      ].filter(name => selected.includes(name)).length;
+
+      const highEndFloor = additionalHardcore >= 2 ? -9.20 : -8.60;
+      if (correctedScore > highEndFloor) {
+        correctedScore = highEndFloor;
+        correction = additionalHardcore >= 2
+          ? "CORE HIGH-END / ELITE COMBAT"
+          : "CORE HIGH-END";
+      }
+    }
+
+    const score = Math.max(-10, Math.min(10, correctedScore));
     const classification = classifyActivity(score);
     profileState.analysis = {
       valid: true,
       score,
+      rawScore,
       level: classification.level,
       label: classification.label,
       gaugePercent: ((score + 10) / 20) * 100,
-      details
+      details,
+      correction
     };
     return profileState.analysis;
   }
