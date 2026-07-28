@@ -363,7 +363,7 @@
 
           <div class="btns">
             <button id="playPauseBtn">一時停止</button>
-            <button id="restartBtn" class="secondary">10秒ループを先頭から再生</button>
+            <button id="restartBtn" class="secondary">12秒ループを先頭から再生</button>
           </div>
 
           <div class="smallnote">
@@ -371,7 +371,7 @@
             ・レイヤー順<br>
             ・標準サイズと配置位置<br>
             ・ジャンル別の回転方向と速度差<br>
-            ・起動 → 待機 → 終了の10秒ループ<br>
+            ・起動 → 待機 → 終了の12秒ループ<br>
             ・glow-mask の着色発光<br><br>
             <span class="danger">※ preview.png は使っていません。</span>
           </div>
@@ -401,7 +401,7 @@
   const ASSET_ROOT = "./ff14-job-emblem-frames";
   const CANVAS_W = 1920;
   const CANVAS_H = 1080;
-  const LOOP_MS = 10000;
+  const LOOP_MS = 12000;
 
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d");
@@ -446,7 +446,7 @@
       label: "TANK",
       accent: "#56CFFF",
       outerDir: 1,
-      outerPeriod: 42,
+      outerPeriod: 60,
       innerKickDeg: -18,
       pulsePeriod: 2400,
       hasMiddle: false
@@ -520,29 +520,38 @@
   };
 
   const PRESENTATION = {
-    ss: { inStart: 900, inEnd: 2300, outStart: 8200, outEnd: 9400 },
-    ui: { inStart: 1400, inEnd: 2500, outStart: 8000, outEnd: 9200 },
+    // 12秒構成
+    // 0.00-0.80  黒背景
+    // 0.80-2.00  エンブレム単独
+    // 2.00-3.60  SSフェードイン
+    // 3.20-3.80  エンブレム退場
+    // 3.80-8.60  SS＋UI待機
+    // 8.60-10.20 エンブレム再出現
+    // 9.40-11.20 SSフェードアウト
+    // 11.20-12.00 黒背景＋エンブレム余韻
+    ss: { inStart: 2000, inEnd: 3600, outStart: 9400, outEnd: 11200 },
+    ui: { inStart: 2700, inEnd: 3800, outStart: 9000, outEnd: 10400 },
     intro: {
-      frameBack: { inStart: 350, inEnd: 700, outStart: 2350, outEnd: 2800 },
-      ringOuter: { inStart: 450, inEnd: 1000, outStart: 2350, outEnd: 2800 },
-      ringMiddle: { inStart: 600, inEnd: 1150, outStart: 2350, outEnd: 2800 },
-      ringInner: { inStart: 750, inEnd: 1300, outStart: 2350, outEnd: 2800 },
-      parts: { inStart: 950, inEnd: 1700, outStart: 2300, outEnd: 2800 },
-      markings: { inStart: 950, inEnd: 1700, outStart: 2300, outEnd: 2800 },
-      effects: { inStart: 1200, inEnd: 1900, outStart: 2250, outEnd: 2800 },
-      glow: { inStart: 1250, inEnd: 2000, outStart: 2250, outEnd: 2800 },
-      jobMark: { inStart: 1450, inEnd: 2200, outStart: 2200, outEnd: 2800 }
+      frameBack: { inStart: 800, inEnd: 1150, outStart: 3200, outEnd: 3800 },
+      ringOuter: { inStart: 900, inEnd: 1450, outStart: 3200, outEnd: 3800 },
+      ringMiddle: { inStart: 1050, inEnd: 1600, outStart: 3200, outEnd: 3800 },
+      ringInner: { inStart: 1150, inEnd: 1700, outStart: 3200, outEnd: 3800 },
+      parts: { inStart: 1300, inEnd: 1900, outStart: 3150, outEnd: 3800 },
+      markings: { inStart: 1350, inEnd: 1950, outStart: 3150, outEnd: 3800 },
+      effects: { inStart: 1500, inEnd: 2150, outStart: 3100, outEnd: 3750 },
+      glow: { inStart: 1500, inEnd: 2200, outStart: 3100, outEnd: 3750 },
+      jobMark: { inStart: 1650, inEnd: 2250, outStart: 3050, outEnd: 3700 }
     },
     outro: {
-      frameBack: { inStart: 7600, inEnd: 7900, outStart: 9050, outEnd: 9550 },
-      ringOuter: { inStart: 7650, inEnd: 8050, outStart: 9050, outEnd: 9550 },
-      ringMiddle: { inStart: 7750, inEnd: 8150, outStart: 9050, outEnd: 9550 },
-      ringInner: { inStart: 7800, inEnd: 8200, outStart: 9050, outEnd: 9550 },
-      parts: { inStart: 7900, inEnd: 8350, outStart: 9000, outEnd: 9500 },
-      markings: { inStart: 7900, inEnd: 8350, outStart: 9000, outEnd: 9500 },
-      effects: { inStart: 8000, inEnd: 8500, outStart: 8950, outEnd: 9450 },
-      glow: { inStart: 8050, inEnd: 8550, outStart: 8950, outEnd: 9450 },
-      jobMark: { inStart: 8100, inEnd: 8600, outStart: 8900, outEnd: 9400 }
+      frameBack: { inStart: 8600, inEnd: 9000, outStart: 11500, outEnd: 12000 },
+      ringOuter: { inStart: 8700, inEnd: 9200, outStart: 11500, outEnd: 12000 },
+      ringMiddle: { inStart: 8800, inEnd: 9300, outStart: 11500, outEnd: 12000 },
+      ringInner: { inStart: 8900, inEnd: 9400, outStart: 11500, outEnd: 12000 },
+      parts: { inStart: 9000, inEnd: 9550, outStart: 11450, outEnd: 12000 },
+      markings: { inStart: 9000, inEnd: 9550, outStart: 11450, outEnd: 12000 },
+      effects: { inStart: 9150, inEnd: 9750, outStart: 11400, outEnd: 11950 },
+      glow: { inStart: 9150, inEnd: 9800, outStart: 11400, outEnd: 11950 },
+      jobMark: { inStart: 9250, inEnd: 9850, outStart: 11350, outEnd: 11900 }
     }
   };
 
@@ -1309,7 +1318,7 @@
         ジャンル: <strong>${GENRES[currentGenre].label}</strong> /
         配置: <strong>${positionSelect.options[positionSelect.selectedIndex].text}</strong> /
         サイズ: <strong>${sizeSelect.value}px</strong><br>
-        表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark / 演出: black → emblem → SS → hold → emblem → black
+        表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark / 演出: black hold → emblem → SS reveal → long hold → emblem → black hold
       `);
     } catch (err) {
       if (requestId !== loadRequestId || requestedGenre !== currentGenre) return;
