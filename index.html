@@ -293,8 +293,8 @@
       <div class="titlebox">
         <h1>FF14 横型IDビジュアル動画ジェネレータ — ジョブエンブレム外装 試作</h1>
         <p>
-          これは<strong>外装素材の表示順・サイズ・透明度・回転・起動/待機/終了アニメーション</strong>を確認するための試作です。<br>
-          `ff14-job-emblem-frames` フォルダを `index.html` と同じ階層に置いてください。ジョブマーク本体は素材に含まれないため、必要なら別PNGをアップロードして中央へ重ねられます。
+          これは<strong>メインジョブ選択に応じて、ジョブマークと対応外装を自動切替する試作</strong>です。<br>
+          `ff14-job-emblem-frames` と `assets/job-marks` を `index.html` と同じ階層に置いてください。ジョブマークはユーザーがアップロードせず、選択したメインジョブから自動で読み込みます。
         </p>
       </div>
     </div>
@@ -305,15 +305,55 @@
 
         <div class="grid">
           <div class="field">
-            <label for="genreSelect">ジャンル</label>
-            <select id="genreSelect">
-              <option value="tank">TANK</option>
-              <option value="healer">HEALER</option>
-              <option value="melee">MELEE DPS</option>
-              <option value="physical-ranged">PHYSICAL RANGED DPS</option>
-              <option value="magical-ranged">MAGICAL RANGED DPS</option>
-              <option value="crafter">CRAFTER</option>
-              <option value="gatherer">GATHERER</option>
+            <label for="mainJobSelect">メインジョブ</label>
+            <select id="mainJobSelect">
+              <optgroup label="TANK">
+                <option value="paladin">ナイト / PALADIN</option>
+                <option value="warrior">戦士 / WARRIOR</option>
+                <option value="dark-knight" selected>暗黒騎士 / DARK KNIGHT</option>
+                <option value="gunbreaker">ガンブレイカー / GUNBREAKER</option>
+              </optgroup>
+              <optgroup label="HEALER">
+                <option value="white-mage">白魔道士 / WHITE MAGE</option>
+                <option value="scholar">学者 / SCHOLAR</option>
+                <option value="astrologian">占星術師 / ASTROLOGIAN</option>
+                <option value="sage">賢者 / SAGE</option>
+              </optgroup>
+              <optgroup label="MELEE DPS">
+                <option value="monk">モンク / MONK</option>
+                <option value="dragoon">竜騎士 / DRAGOON</option>
+                <option value="ninja">忍者 / NINJA</option>
+                <option value="samurai">侍 / SAMURAI</option>
+                <option value="reaper">リーパー / REAPER</option>
+                <option value="viper">ヴァイパー / VIPER</option>
+              </optgroup>
+              <optgroup label="PHYSICAL RANGED DPS">
+                <option value="bard">吟遊詩人 / BARD</option>
+                <option value="machinist">機工士 / MACHINIST</option>
+                <option value="dancer">踊り子 / DANCER</option>
+              </optgroup>
+              <optgroup label="MAGICAL RANGED DPS">
+                <option value="black-mage">黒魔道士 / BLACK MAGE</option>
+                <option value="summoner">召喚士 / SUMMONER</option>
+                <option value="red-mage">赤魔道士 / RED MAGE</option>
+                <option value="pictomancer">ピクトマンサー / PICTOMANCER</option>
+                <option value="blue-mage">青魔道士 / BLUE MAGE</option>
+              </optgroup>
+              <optgroup label="CRAFTER">
+                <option value="carpenter">木工師 / CARPENTER</option>
+                <option value="blacksmith">鍛冶師 / BLACKSMITH</option>
+                <option value="armorer">甲冑師 / ARMORER</option>
+                <option value="goldsmith">彫金師 / GOLDSMITH</option>
+                <option value="leatherworker">革細工師 / LEATHERWORKER</option>
+                <option value="weaver">裁縫師 / WEAVER</option>
+                <option value="alchemist">錬金術師 / ALCHEMIST</option>
+                <option value="culinarian">調理師 / CULINARIAN</option>
+              </optgroup>
+              <optgroup label="GATHERER">
+                <option value="miner">採掘師 / MINER</option>
+                <option value="botanist">園芸師 / BOTANIST</option>
+                <option value="fisher">漁師 / FISHER</option>
+              </optgroup>
             </select>
           </div>
 
@@ -348,15 +388,9 @@
             </div>
           </div>
 
-          <div class="row2">
-            <div class="field">
-              <label for="bgInput">背景SSアップロード</label>
-              <input id="bgInput" type="file" accept="image/*" />
-            </div>
-            <div class="field">
-              <label for="jobMarkInput">ジョブマークPNGアップロード</label>
-              <input id="jobMarkInput" type="file" accept="image/*" />
-            </div>
+          <div class="field">
+            <label for="bgInput">背景SSアップロード</label>
+            <input id="bgInput" type="file" accept="image/*" />
           </div>
 
           <div class="field">
@@ -430,13 +464,12 @@
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d");
 
-  const genreSelect = document.getElementById("genreSelect");
+  const mainJobSelect = document.getElementById("mainJobSelect");
   const positionSelect = document.getElementById("positionSelect");
   const sizeSelect = document.getElementById("sizeSelect");
   const frameOpacitySlider = document.getElementById("frameOpacity");
   const glowBoostSlider = document.getElementById("glowBoost");
   const bgInput = document.getElementById("bgInput");
-  const jobMarkInput = document.getElementById("jobMarkInput");
   const ssScaleSlider = document.getElementById("ssScale");
   const ssScaleValue = document.getElementById("ssScaleValue");
   const flipSsBtn = document.getElementById("flipSsBtn");
@@ -488,6 +521,44 @@
       access: { x: 258, y: 814, align: "left", box: [92, 802, 600, 182], qrX: 110, qrY: 824, codeX: 258 },
       credit: { x: 960, y: 1024, align: "center" }
     }
+  };
+
+  const JOB_MARK_ROOT = "./assets/job-marks";
+
+  const JOBS = {
+    "paladin": { nameJa: "ナイト", nameEn: "PALADIN", short: "PLD", genre: "tank", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "warrior": { nameJa: "戦士", nameEn: "WARRIOR", short: "WAR", genre: "tank", scale: 0.96, offsetX: 0, offsetY: 0 },
+    "dark-knight": { nameJa: "暗黒騎士", nameEn: "DARK KNIGHT", short: "DRK", genre: "tank", scale: 0.94, offsetX: 0, offsetY: 4 },
+    "gunbreaker": { nameJa: "ガンブレイカー", nameEn: "GUNBREAKER", short: "GNB", genre: "tank", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "white-mage": { nameJa: "白魔道士", nameEn: "WHITE MAGE", short: "WHM", genre: "healer", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "scholar": { nameJa: "学者", nameEn: "SCHOLAR", short: "SCH", genre: "healer", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "astrologian": { nameJa: "占星術師", nameEn: "ASTROLOGIAN", short: "AST", genre: "healer", scale: 0.92, offsetX: 0, offsetY: 0 },
+    "sage": { nameJa: "賢者", nameEn: "SAGE", short: "SGE", genre: "healer", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "monk": { nameJa: "モンク", nameEn: "MONK", short: "MNK", genre: "melee", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "dragoon": { nameJa: "竜騎士", nameEn: "DRAGOON", short: "DRG", genre: "melee", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "ninja": { nameJa: "忍者", nameEn: "NINJA", short: "NIN", genre: "melee", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "samurai": { nameJa: "侍", nameEn: "SAMURAI", short: "SAM", genre: "melee", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "reaper": { nameJa: "リーパー", nameEn: "REAPER", short: "RPR", genre: "melee", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "viper": { nameJa: "ヴァイパー", nameEn: "VIPER", short: "VPR", genre: "melee", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "bard": { nameJa: "吟遊詩人", nameEn: "BARD", short: "BRD", genre: "physical-ranged", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "machinist": { nameJa: "機工士", nameEn: "MACHINIST", short: "MCH", genre: "physical-ranged", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "dancer": { nameJa: "踊り子", nameEn: "DANCER", short: "DNC", genre: "physical-ranged", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "black-mage": { nameJa: "黒魔道士", nameEn: "BLACK MAGE", short: "BLM", genre: "magical-ranged", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "summoner": { nameJa: "召喚士", nameEn: "SUMMONER", short: "SMN", genre: "magical-ranged", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "red-mage": { nameJa: "赤魔道士", nameEn: "RED MAGE", short: "RDM", genre: "magical-ranged", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "pictomancer": { nameJa: "ピクトマンサー", nameEn: "PICTOMANCER", short: "PCT", genre: "magical-ranged", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "blue-mage": { nameJa: "青魔道士", nameEn: "BLUE MAGE", short: "BLU", genre: "magical-ranged", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "carpenter": { nameJa: "木工師", nameEn: "CARPENTER", short: "CRP", genre: "crafter", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "blacksmith": { nameJa: "鍛冶師", nameEn: "BLACKSMITH", short: "BSM", genre: "crafter", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "armorer": { nameJa: "甲冑師", nameEn: "ARMORER", short: "ARM", genre: "crafter", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "goldsmith": { nameJa: "彫金師", nameEn: "GOLDSMITH", short: "GSM", genre: "crafter", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "leatherworker": { nameJa: "革細工師", nameEn: "LEATHERWORKER", short: "LTW", genre: "crafter", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "weaver": { nameJa: "裁縫師", nameEn: "WEAVER", short: "WVR", genre: "crafter", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "alchemist": { nameJa: "錬金術師", nameEn: "ALCHEMIST", short: "ALC", genre: "crafter", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "culinarian": { nameJa: "調理師", nameEn: "CULINARIAN", short: "CUL", genre: "crafter", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "miner": { nameJa: "採掘師", nameEn: "MINER", short: "MIN", genre: "gatherer", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "botanist": { nameJa: "園芸師", nameEn: "BOTANIST", short: "BTN", genre: "gatherer", scale: 0.94, offsetX: 0, offsetY: 0 },
+    "fisher": { nameJa: "漁師", nameEn: "FISHER", short: "FSH", genre: "gatherer", scale: 0.94, offsetX: 0, offsetY: 0 }
   };
 
   const GENRES = {
@@ -606,9 +677,11 @@
   };
 
   const cache = {};
-  let currentGenre = genreSelect.value;
+  let currentJobId = mainJobSelect.value;
+  let currentGenre = JOBS[currentJobId].genre;
   let bgImage = null;
   let jobMarkImage = null;
+  let jobMarkLoadRequestId = 0;
   const ssTransform = {
     scale: 1,
     offsetX: 0,
@@ -715,6 +788,22 @@
       img.onerror = () => reject(new Error("画像読込失敗: " + url));
       img.src = url;
     });
+  }
+
+  async function loadSelectedJobMark() {
+    const requestId = ++jobMarkLoadRequestId;
+    const jobId = currentJobId;
+    const url = `${JOB_MARK_ROOT}/${jobId}.png`;
+
+    try {
+      const img = await createImage(url);
+      if (requestId !== jobMarkLoadRequestId || jobId !== currentJobId) return;
+      jobMarkImage = img;
+    } catch (error) {
+      if (requestId !== jobMarkLoadRequestId || jobId !== currentJobId) return;
+      jobMarkImage = null;
+      console.warn(`ジョブマークが未配置です: ${url}`);
+    }
   }
 
   async function loadGenreAssets(genre) {
@@ -1019,9 +1108,12 @@
   function drawJobMark(cx, cy, alpha, phase = 1) {
     if (!showJobMark.checked || alpha <= 0) return;
 
-    const size = 250;
+    const job = JOBS[currentJobId];
+    const size = 250 * (job?.scale || 1);
     const scale = lerp(1.08, 1.0, clamp01(phase));
     const drawSize = size * scale;
+    const markX = cx + (job?.offsetX || 0);
+    const markY = cy + (job?.offsetY || 0);
 
     if (jobMarkImage) {
       const iw = jobMarkImage.width;
@@ -1034,14 +1126,14 @@
       ctx.globalAlpha = alpha;
       ctx.shadowColor = "rgba(0,0,0,0.35)";
       ctx.shadowBlur = 10;
-      ctx.drawImage(jobMarkImage, cx - dw / 2, cy - dh / 2, dw, dh);
+      ctx.drawImage(jobMarkImage, markX - dw / 2, markY - dh / 2, dw, dh);
       ctx.restore();
       return;
     }
 
     // 仮プレースホルダー
     ctx.save();
-    ctx.translate(cx, cy);
+    ctx.translate(markX, markY);
     ctx.globalAlpha = alpha;
 
     ctx.strokeStyle = "rgba(224, 244, 255, 0.92)";
@@ -1065,8 +1157,7 @@
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "rgba(236, 247, 255, 0.92)";
-    ctx.fillText("JOB", 0, -12);
-    ctx.fillText("MARK", 0, 18);
+    ctx.fillText(JOBS[currentJobId]?.short || "JOB", 0, 0);
     ctx.restore();
   }
 
@@ -1130,7 +1221,7 @@
 
     ctx.font = "700 28px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.94)";
-    ctx.fillText("DARK KNIGHT", identity.x, identity.y + 132);
+    ctx.fillText(JOBS[currentJobId]?.nameEn || "MAIN JOB", identity.x, identity.y + 132);
 
     // Origin
     ctx.textAlign = origin.align;
@@ -1463,10 +1554,12 @@
     reader.readAsDataURL(file);
   }
 
-  genreSelect.addEventListener("change", () => {
-    currentGenre = genreSelect.value;
+  mainJobSelect.addEventListener("change", async () => {
+    currentJobId = mainJobSelect.value;
+    currentGenre = JOBS[currentJobId].genre;
     updateAccentUI();
-    ensureCurrentGenreLoaded();
+    await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
+    restartLoop();
   });
 
   positionSelect.addEventListener("change", ensureCurrentGenreLoaded);
@@ -1551,12 +1644,6 @@
     ssScaleValue.textContent = `${Math.round(nextScale * 100)}%`;
   }, { passive: false });
 
-  jobMarkInput.addEventListener("change", () => {
-    loadImageFromFile(jobMarkInput.files[0], img => {
-      jobMarkImage = img;
-    });
-  });
-
   playPauseBtn.addEventListener("click", togglePlayPause);
   restartBtn.addEventListener("click", restartLoop);
 
@@ -1564,7 +1651,7 @@
     frameOpacityValue.textContent = Number(frameOpacitySlider.value).toFixed(2);
     glowBoostValue.textContent = Number(glowBoostSlider.value).toFixed(2);
     ssScaleValue.textContent = `${Math.round(ssTransform.scale * 100)}%`;
-    await ensureCurrentGenreLoaded();
+    await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
     renderLoop();
   }
 
