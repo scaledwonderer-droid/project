@@ -348,6 +348,117 @@
     line-height: 1.55;
   }
 
+  .playstyle-panel {
+    display: grid;
+    gap: 9px;
+    max-height: 420px;
+    overflow: auto;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(160, 220, 255, 0.12);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .playstyle-group {
+    display: grid;
+    gap: 6px;
+  }
+
+  .playstyle-group-title {
+    position: sticky;
+    top: -8px;
+    z-index: 1;
+    margin: 0 -2px;
+    padding: 7px 8px 5px;
+    color: #9edfff;
+    background: rgba(12, 22, 36, 0.96);
+    border-bottom: 1px solid rgba(103, 211, 255, 0.12);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+  }
+
+  .playstyle-items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .playstyle-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid rgba(160, 220, 255, 0.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.025);
+    color: #d9edf8;
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease, opacity .15s ease;
+  }
+
+  .playstyle-item:hover {
+    border-color: rgba(103, 211, 255, 0.28);
+    background: rgba(103,211,255,0.055);
+  }
+
+  .playstyle-item.selected {
+    border-color: rgba(103, 211, 255, 0.58);
+    background: rgba(103,211,255,0.12);
+    box-shadow: 0 0 0 1px rgba(103,211,255,0.06) inset;
+  }
+
+  .playstyle-item.limit-disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+
+  .playstyle-item input {
+    width: auto;
+    flex: 0 0 auto;
+    accent-color: var(--accent);
+  }
+
+  .playstyle-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .playstyle-count {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: rgba(103,211,255,0.045);
+    border: 1px solid rgba(103,211,255,0.10);
+    color: #cceafa;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .playstyle-count.warning {
+    color: #ffe0a6;
+    border-color: rgba(255, 190, 90, 0.24);
+    background: rgba(255, 170, 70, 0.055);
+  }
+
+  .playstyle-count.complete {
+    color: #c9ffe9;
+    border-color: rgba(99, 230, 193, 0.20);
+    background: rgba(99, 230, 193, 0.05);
+  }
+
+  .compact-button {
+    width: auto;
+    white-space: nowrap;
+    padding: 9px 12px;
+  }
+
   .smallnote {
     margin-top: 12px;
     color: var(--sub);
@@ -466,10 +577,23 @@
           </div>
 
           <div class="field">
-            <label>サブジョブ（複数選択・完成動画には非表示）</label>
+            <label>サブジョブ（複数選択）</label>
             <div id="subJobBox" class="subjob-box"></div>
             <div id="subJobSummary" class="selection-summary">未選択</div>
             <div class="hint">メインジョブと同じジョブは選択できません。選択内容は後続の復元用IDコードへ保存する予定です。</div>
+          </div>
+
+          <div class="section-title">PLAY STYLE</div>
+
+          <div class="field">
+            <label>プレイスタイル（3〜15項目）</label>
+            <div id="playStyleBox" class="playstyle-panel"></div>
+            <div class="playstyle-actions">
+              <div id="playStyleCount" class="playstyle-count warning">0 / 15｜あと3項目選択してください</div>
+              <button id="clearPlayStylesBtn" type="button" class="secondary compact-button">全解除</button>
+            </div>
+            <div id="playStyleSummary" class="selection-summary">未選択</div>
+            <div class="hint">最低3項目、推奨5〜10項目、最大15項目。分析計算は次の段階で実装します。</div>
           </div>
 
           <div class="section-title">VISUAL / PREVIEW</div>
@@ -587,6 +711,10 @@
   const mainJobSelect = document.getElementById("mainJobSelect");
   const subJobBox = document.getElementById("subJobBox");
   const subJobSummary = document.getElementById("subJobSummary");
+  const playStyleBox = document.getElementById("playStyleBox");
+  const playStyleCount = document.getElementById("playStyleCount");
+  const playStyleSummary = document.getElementById("playStyleSummary");
+  const clearPlayStylesBtn = document.getElementById("clearPlayStylesBtn");
   const positionSelect = document.getElementById("positionSelect");
   const sizeSelect = document.getElementById("sizeSelect");
   const frameOpacitySlider = document.getElementById("frameOpacity");
@@ -639,8 +767,49 @@
     world: "Ixion",
     race: "Au Ra",
     clan: "Raen",
-    subJobs: new Set()
+    subJobs: new Set(),
+    playStyles: new Set()
   };
+
+  const PLAY_STYLE_MIN = 3;
+  const PLAY_STYLE_RECOMMENDED_MIN = 5;
+  const PLAY_STYLE_RECOMMENDED_MAX = 10;
+  const PLAY_STYLE_MAX = 15;
+
+  const PLAY_STYLE_GROUPS = [
+    {
+      label: "戦闘・攻略",
+      items: ["メインストーリー", "F.A.T.E.", "高難度", "レイド", "討滅戦", "アライアンスレイド", "ディープダンジョン", "ヴァリアントダンジョン", "固定活動", "装備集め", "コンテンツルーレット"]
+    },
+    {
+      label: "PvP",
+      items: ["PvP", "フロントライン", "クリスタルコンフリクト"]
+    },
+    {
+      label: "探索・特殊フィールド",
+      items: ["サブクエスト", "トレジャーハント", "エウレカ", "ボズヤ戦線", "クレセントアイル"]
+    },
+    {
+      label: "制作・採集・生活",
+      items: ["ギャザラー", "クラフター", "ヌシ釣り", "金策", "ハウジング", "無人島"]
+    },
+    {
+      label: "外見・撮影",
+      items: ["ミラージュプリズム", "グループポーズ", "スタジオ巡り"]
+    },
+    {
+      label: "交流・RP",
+      items: ["ユーザーイベント", "RP", "演奏", "交流", "チャット中心", "初心者支援"]
+    },
+    {
+      label: "収集・娯楽",
+      items: ["ゴールドソーサー", "マウント集め", "ミニオン集め", "アチーブメント"]
+    },
+    {
+      label: "プレイ傾向",
+      items: ["カジュアル", "まったり"]
+    }
+  ];
 
   const BASE_LAYER_ALPHA = {
     frameBack: 0.16,
@@ -925,6 +1094,85 @@
     subJobSummary.textContent = names.length ? `選択中 ${names.length}件：${names.join("、")}` : "未選択";
   }
 
+  function renderPlayStyleOptions() {
+    playStyleBox.innerHTML = "";
+    const atLimit = profileState.playStyles.size >= PLAY_STYLE_MAX;
+
+    PLAY_STYLE_GROUPS.forEach(group => {
+      const section = document.createElement("section");
+      section.className = "playstyle-group";
+
+      const title = document.createElement("div");
+      title.className = "playstyle-group-title";
+      title.textContent = group.label;
+
+      const items = document.createElement("div");
+      items.className = "playstyle-items";
+
+      group.items.forEach(name => {
+        const selected = profileState.playStyles.has(name);
+        const label = document.createElement("label");
+        label.className = "playstyle-item";
+        if (selected) label.classList.add("selected");
+        if (atLimit && !selected) label.classList.add("limit-disabled");
+
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.value = name;
+        input.checked = selected;
+        input.disabled = atLimit && !selected;
+        input.addEventListener("change", () => {
+          if (input.checked) {
+            if (profileState.playStyles.size >= PLAY_STYLE_MAX) {
+              input.checked = false;
+              return;
+            }
+            profileState.playStyles.add(name);
+          } else {
+            profileState.playStyles.delete(name);
+          }
+          renderPlayStyleOptions();
+        });
+
+        const text = document.createElement("span");
+        text.textContent = name;
+        label.append(input, text);
+        items.appendChild(label);
+      });
+
+      section.append(title, items);
+      playStyleBox.appendChild(section);
+    });
+
+    updatePlayStyleStatus();
+  }
+
+  function updatePlayStyleStatus() {
+    const selected = [...profileState.playStyles];
+    const count = selected.length;
+    playStyleCount.classList.remove("warning", "complete");
+
+    if (count < PLAY_STYLE_MIN) {
+      playStyleCount.classList.add("warning");
+      playStyleCount.textContent = `${count} / ${PLAY_STYLE_MAX}｜あと${PLAY_STYLE_MIN - count}項目選択してください`;
+    } else if (count < PLAY_STYLE_RECOMMENDED_MIN) {
+      playStyleCount.classList.add("complete");
+      playStyleCount.textContent = `${count} / ${PLAY_STYLE_MAX}｜選択条件を満たしています（推奨5〜10項目）`;
+    } else if (count <= PLAY_STYLE_RECOMMENDED_MAX) {
+      playStyleCount.classList.add("complete");
+      playStyleCount.textContent = `${count} / ${PLAY_STYLE_MAX}｜推奨範囲です`;
+    } else if (count < PLAY_STYLE_MAX) {
+      playStyleCount.classList.add("complete");
+      playStyleCount.textContent = `${count} / ${PLAY_STYLE_MAX}｜選択可能です`;
+    } else {
+      playStyleCount.classList.add("warning");
+      playStyleCount.textContent = `${count} / ${PLAY_STYLE_MAX}｜最大数に達しました`;
+    }
+
+    playStyleSummary.textContent = selected.length ? `選択中：${selected.join("、")}` : "未選択";
+    clearPlayStylesBtn.disabled = selected.length === 0;
+  }
+
   function initializeFormalInputs() {
     populateGroupedPairSelect(
       dataCenterSelect,
@@ -940,6 +1188,7 @@
     applyRaceClanSelection();
     characterNameInput.value = profileState.characterName;
     renderSubJobOptions();
+    renderPlayStyleOptions();
   }
 
   function easeOutCubic(t) {
@@ -1799,6 +2048,11 @@
     };
     reader.readAsDataURL(file);
   }
+
+  clearPlayStylesBtn.addEventListener("click", () => {
+    profileState.playStyles.clear();
+    renderPlayStyleOptions();
+  });
 
   characterNameInput.addEventListener("input", () => {
     profileState.characterName = characterNameInput.value.trim();
