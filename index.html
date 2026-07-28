@@ -581,26 +581,27 @@
     ss: { inStart: 2000, inEnd: 3600, outStart: 9400, outEnd: 11200 },
     ui: { inStart: 2700, inEnd: 3800, outStart: 9000, outEnd: 10400 },
     intro: {
-      frameBack: { inStart: 800, inEnd: 1150, outStart: 3200, outEnd: 3800 },
-      ringOuter: { inStart: 900, inEnd: 1450, outStart: 3200, outEnd: 3800 },
-      ringMiddle: { inStart: 1050, inEnd: 1600, outStart: 3200, outEnd: 3800 },
-      ringInner: { inStart: 1150, inEnd: 1700, outStart: 3200, outEnd: 3800 },
-      parts: { inStart: 1300, inEnd: 1900, outStart: 3150, outEnd: 3800 },
-      markings: { inStart: 1350, inEnd: 1950, outStart: 3150, outEnd: 3800 },
-      effects: { inStart: 1500, inEnd: 2150, outStart: 3100, outEnd: 3750 },
-      glow: { inStart: 1500, inEnd: 2200, outStart: 3100, outEnd: 3750 },
-      jobMark: { inStart: 1650, inEnd: 2250, outStart: 3050, outEnd: 3700 }
+      // 各レイヤーの出現・退場を長めに取り、エンブレム全体が滑らかに呼吸するように表示
+      frameBack: { inStart: 800, inEnd: 1550, outStart: 3000, outEnd: 4100 },
+      ringOuter: { inStart: 850, inEnd: 1650, outStart: 3000, outEnd: 4100 },
+      ringMiddle: { inStart: 950, inEnd: 1750, outStart: 3000, outEnd: 4100 },
+      ringInner: { inStart: 1000, inEnd: 1800, outStart: 3000, outEnd: 4100 },
+      parts: { inStart: 1100, inEnd: 1900, outStart: 2950, outEnd: 4100 },
+      markings: { inStart: 1150, inEnd: 1950, outStart: 2950, outEnd: 4100 },
+      effects: { inStart: 1250, inEnd: 2050, outStart: 2900, outEnd: 4050 },
+      glow: { inStart: 1250, inEnd: 2100, outStart: 2900, outEnd: 4050 },
+      jobMark: { inStart: 1350, inEnd: 2150, outStart: 2850, outEnd: 4000 }
     },
     outro: {
-      frameBack: { inStart: 8600, inEnd: 9000, outStart: 11500, outEnd: 12000 },
-      ringOuter: { inStart: 8700, inEnd: 9200, outStart: 11500, outEnd: 12000 },
-      ringMiddle: { inStart: 8800, inEnd: 9300, outStart: 11500, outEnd: 12000 },
-      ringInner: { inStart: 8900, inEnd: 9400, outStart: 11500, outEnd: 12000 },
-      parts: { inStart: 9000, inEnd: 9550, outStart: 11450, outEnd: 12000 },
-      markings: { inStart: 9000, inEnd: 9550, outStart: 11450, outEnd: 12000 },
-      effects: { inStart: 9150, inEnd: 9750, outStart: 11400, outEnd: 11950 },
-      glow: { inStart: 9150, inEnd: 9800, outStart: 11400, outEnd: 11950 },
-      jobMark: { inStart: 9250, inEnd: 9850, outStart: 11350, outEnd: 11900 }
+      frameBack: { inStart: 8400, inEnd: 9500, outStart: 10800, outEnd: 12000 },
+      ringOuter: { inStart: 8450, inEnd: 9550, outStart: 10800, outEnd: 12000 },
+      ringMiddle: { inStart: 8500, inEnd: 9600, outStart: 10800, outEnd: 12000 },
+      ringInner: { inStart: 8550, inEnd: 9650, outStart: 10800, outEnd: 12000 },
+      parts: { inStart: 8600, inEnd: 9700, outStart: 10750, outEnd: 12000 },
+      markings: { inStart: 8600, inEnd: 9700, outStart: 10750, outEnd: 12000 },
+      effects: { inStart: 8700, inEnd: 9800, outStart: 10700, outEnd: 11950 },
+      glow: { inStart: 8700, inEnd: 9850, outStart: 10700, outEnd: 11950 },
+      jobMark: { inStart: 8750, inEnd: 9900, outStart: 10650, outEnd: 11900 }
     }
   };
 
