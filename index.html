@@ -210,6 +210,19 @@
     height: auto;
     aspect-ratio: 16 / 9;
     background: #000;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+
+  canvas.dragging {
+    cursor: grabbing;
+  }
+
+  .ss-tools {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
 
   .meta {
@@ -346,6 +359,16 @@
             </div>
           </div>
 
+          <div class="field">
+            <label for="ssScale">SS拡大率 <span class="value" id="ssScaleValue">100%</span></label>
+            <input id="ssScale" type="range" min="1.00" max="3.00" step="0.01" value="1.00" />
+          </div>
+
+          <div class="ss-tools">
+            <button id="flipSsBtn" type="button" class="secondary">SSを左右反転</button>
+            <button id="resetSsBtn" type="button" class="secondary">SS位置をリセット</button>
+          </div>
+
           <div class="checkrow">
             <label class="check">
               <input type="checkbox" id="showGuides" checked />
@@ -372,7 +395,8 @@
             ・標準サイズと配置位置<br>
             ・ジャンル別の回転方向と速度差<br>
             ・起動 → 待機 → 終了の12秒ループ<br>
-            ・glow-mask の着色発光<br><br>
+            ・glow-mask の着色発光<br>
+            ・SSのドラッグ移動／ホイール拡大縮小／左右反転<br><br>
             <span class="danger">※ preview.png は使っていません。</span>
           </div>
         </div>
@@ -413,6 +437,10 @@
   const glowBoostSlider = document.getElementById("glowBoost");
   const bgInput = document.getElementById("bgInput");
   const jobMarkInput = document.getElementById("jobMarkInput");
+  const ssScaleSlider = document.getElementById("ssScale");
+  const ssScaleValue = document.getElementById("ssScaleValue");
+  const flipSsBtn = document.getElementById("flipSsBtn");
+  const resetSsBtn = document.getElementById("resetSsBtn");
   const showGuides = document.getElementById("showGuides");
   const showOverlayText = document.getElementById("showOverlayText");
   const showJobMark = document.getElementById("showJobMark");
@@ -580,6 +608,13 @@
   let currentGenre = genreSelect.value;
   let bgImage = null;
   let jobMarkImage = null;
+  const ssTransform = {
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+    flipped: false
+  };
+  let ssDrag = null;
   let isPlaying = true;
   let startTime = performance.now();
   let pausedElapsed = 0;
@@ -750,18 +785,39 @@
     return item.glowTintCache[color];
   }
 
+  function getSsBaseScale(img) {
+    return Math.max(CANVAS_W / img.width, CANVAS_H / img.height);
+  }
+
   function drawCoverImage(img, alpha = 1) {
-    const iw = img.width;
-    const ih = img.height;
-    const scale = Math.max(CANVAS_W / iw, CANVAS_H / ih);
-    const dw = iw * scale;
-    const dh = ih * scale;
-    const dx = (CANVAS_W - dw) / 2;
-    const dy = (CANVAS_H - dh) / 2;
+    const scale = getSsBaseScale(img) * ssTransform.scale;
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.translate(CANVAS_W / 2 + ssTransform.offsetX, CANVAS_H / 2 + ssTransform.offsetY);
+    ctx.scale(ssTransform.flipped ? -1 : 1, 1);
+    ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
     ctx.restore();
+  }
+
+  function resetSsTransform() {
+    ssTransform.scale = 1;
+    ssTransform.offsetX = 0;
+    ssTransform.offsetY = 0;
+    ssTransform.flipped = false;
+    ssScaleSlider.value = "1.00";
+    ssScaleValue.textContent = "100%";
+    flipSsBtn.textContent = "SSを左右反転";
+  }
+
+  function clientToCanvas(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left) * (CANVAS_W / rect.width),
+      y: (clientY - rect.top) * (CANVAS_H / rect.height)
+    };
   }
 
   function drawDefaultBackground(ms, alpha = 1) {
@@ -1426,8 +1482,73 @@
   bgInput.addEventListener("change", () => {
     loadImageFromFile(bgInput.files[0], img => {
       bgImage = img;
+      resetSsTransform();
+      restartLoop();
     });
   });
+
+  ssScaleSlider.addEventListener("input", () => {
+    ssTransform.scale = Number(ssScaleSlider.value);
+    ssScaleValue.textContent = `${Math.round(ssTransform.scale * 100)}%`;
+  });
+
+  flipSsBtn.addEventListener("click", () => {
+    ssTransform.flipped = !ssTransform.flipped;
+    flipSsBtn.textContent = ssTransform.flipped ? "左右反転を解除" : "SSを左右反転";
+  });
+
+  resetSsBtn.addEventListener("click", () => {
+    resetSsTransform();
+  });
+
+  canvas.addEventListener("pointerdown", event => {
+    if (!bgImage) return;
+    const point = clientToCanvas(event.clientX, event.clientY);
+    ssDrag = {
+      pointerId: event.pointerId,
+      startX: point.x,
+      startY: point.y,
+      originalX: ssTransform.offsetX,
+      originalY: ssTransform.offsetY
+    };
+    canvas.setPointerCapture(event.pointerId);
+    canvas.classList.add("dragging");
+  });
+
+  canvas.addEventListener("pointermove", event => {
+    if (!ssDrag || ssDrag.pointerId !== event.pointerId) return;
+    const point = clientToCanvas(event.clientX, event.clientY);
+    ssTransform.offsetX = ssDrag.originalX + point.x - ssDrag.startX;
+    ssTransform.offsetY = ssDrag.originalY + point.y - ssDrag.startY;
+  });
+
+  function endSsDrag(event) {
+    if (!ssDrag || ssDrag.pointerId !== event.pointerId) return;
+    ssDrag = null;
+    canvas.classList.remove("dragging");
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  }
+
+  canvas.addEventListener("pointerup", endSsDrag);
+  canvas.addEventListener("pointercancel", endSsDrag);
+
+  canvas.addEventListener("wheel", event => {
+    if (!bgImage) return;
+    event.preventDefault();
+
+    const before = clientToCanvas(event.clientX, event.clientY);
+    const oldScale = ssTransform.scale;
+    const factor = event.deltaY < 0 ? 1.06 : 1 / 1.06;
+    const nextScale = Math.max(1, Math.min(3, oldScale * factor));
+    if (nextScale === oldScale) return;
+
+    const ratio = nextScale / oldScale;
+    ssTransform.offsetX = before.x - CANVAS_W / 2 - (before.x - CANVAS_W / 2 - ssTransform.offsetX) * ratio;
+    ssTransform.offsetY = before.y - CANVAS_H / 2 - (before.y - CANVAS_H / 2 - ssTransform.offsetY) * ratio;
+    ssTransform.scale = nextScale;
+    ssScaleSlider.value = nextScale.toFixed(2);
+    ssScaleValue.textContent = `${Math.round(nextScale * 100)}%`;
+  }, { passive: false });
 
   jobMarkInput.addEventListener("change", () => {
     loadImageFromFile(jobMarkInput.files[0], img => {
@@ -1441,6 +1562,7 @@
   async function init() {
     frameOpacityValue.textContent = Number(frameOpacitySlider.value).toFixed(2);
     glowBoostValue.textContent = Number(glowBoostSlider.value).toFixed(2);
+    ssScaleValue.textContent = `${Math.round(ssTransform.scale * 100)}%`;
     await ensureCurrentGenreLoaded();
     renderLoop();
   }
