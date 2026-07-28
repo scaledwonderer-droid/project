@@ -306,11 +306,11 @@
 
           <div class="row2">
             <div class="field">
-              <label for="positionSelect">配置位置</label>
+              <label for="positionSelect">レイアウトプリセット</label>
               <select id="positionSelect">
-                <option value="right">右側配置</option>
-                <option value="left">左側配置</option>
-                <option value="center">中央配置</option>
+                <option value="A">PRESET A｜人物左・エンブレム右</option>
+                <option value="B">PRESET B｜人物右・エンブレム左</option>
+                <option value="C">PRESET C｜四隅配置・エンブレム中央</option>
               </select>
             </div>
 
@@ -435,10 +435,31 @@
     jobMark: 0.82
   };
 
-  const POSITIONS = {
-    left: { x: 720, y: 540 },
-    right: { x: 1200, y: 540 },
-    center: { x: 960, y: 540 }
+  const LAYOUT_PRESETS = {
+    A: {
+      emblem: { x: 1200, y: 540 },
+      identity: { x: 110, y: 88, align: "left", box: [92, 76, 520, 210] },
+      origin: { x: 110, y: 782, align: "left", box: [110, 770, 520, 180] },
+      analysis: { x: 1300, y: 176, align: "left", box: [1288, 164, 480, 300], combatX: 1300, lifeX: 1668, gaugeX: 1368 },
+      access: { x: 1210, y: 814, align: "left", box: [1200, 802, 600, 182], qrX: 1638, qrY: 824, codeX: 1210 },
+      credit: { x: 110, y: 1024, align: "left" }
+    },
+    B: {
+      emblem: { x: 720, y: 540 },
+      identity: { x: 1810, y: 88, align: "right", box: [1308, 76, 520, 210] },
+      origin: { x: 1810, y: 782, align: "right", box: [1290, 770, 520, 180] },
+      analysis: { x: 170, y: 176, align: "left", box: [152, 164, 480, 300], combatX: 170, lifeX: 538, gaugeX: 238 },
+      access: { x: 258, y: 814, align: "left", box: [120, 802, 600, 182], qrX: 120, qrY: 824, codeX: 258 },
+      credit: { x: 1810, y: 1024, align: "right" }
+    },
+    C: {
+      emblem: { x: 960, y: 540 },
+      identity: { x: 1810, y: 782, align: "right", box: [1218, 770, 610, 214] },
+      origin: { x: 1810, y: 88, align: "right", box: [1308, 76, 520, 180] },
+      analysis: { x: 110, y: 88, align: "left", box: [92, 76, 520, 300], combatX: 110, lifeX: 478, gaugeX: 178 },
+      access: { x: 258, y: 814, align: "left", box: [92, 802, 600, 182], qrX: 110, qrY: 824, codeX: 258 },
+      credit: { x: 960, y: 1024, align: "center" }
+    }
   };
 
   const GENRES = {
@@ -627,8 +648,12 @@
     return lerp(min, max, s);
   }
 
+  function getLayout() {
+    return LAYOUT_PRESETS[positionSelect.value] || LAYOUT_PRESETS.A;
+  }
+
   function getPosition() {
-    return POSITIONS[positionSelect.value] || POSITIONS.right;
+    return getLayout().emblem;
   }
 
   function getSize() {
@@ -991,136 +1016,140 @@
   function drawGuides(position) {
     if (!showGuides.checked) return;
 
+    const layout = getLayout();
     ctx.save();
     ctx.lineWidth = 1;
     ctx.strokeStyle = "rgba(160, 220, 255, 0.22)";
     ctx.setLineDash([8, 8]);
 
-    // Identity zone
-    ctx.strokeRect(92, 76, 520, 210);
+    [layout.identity.box, layout.origin.box, layout.analysis.box, layout.access.box].forEach(([x, y, w, h]) => {
+      ctx.strokeRect(x, y, w, h);
+    });
 
-    // Origin zone
-    ctx.strokeRect(110, 770, 520, 180);
-
-    // Analysis zone
-    ctx.strokeRect(1288, 164, 480, 300);
-
-    // Access zone
-    ctx.strokeRect(1200, 802, 600, 182);
-
-    // Center line
     ctx.beginPath();
     ctx.moveTo(960, 0);
     ctx.lineTo(960, 1080);
     ctx.stroke();
 
-    // Emblem center
     ctx.setLineDash([4, 6]);
     ctx.beginPath();
     ctx.arc(position.x, position.y, 452, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Job mark safe zone
     ctx.beginPath();
     ctx.arc(position.x, position.y, 178, 0, Math.PI * 2);
     ctx.stroke();
-
     ctx.restore();
   }
 
   function drawOverlayTextBlock(alpha = 1) {
     if (!showOverlayText.checked || alpha <= 0) return;
 
+    const preset = positionSelect.value;
+    const layout = getLayout();
+    const identity = layout.identity;
+    const origin = layout.origin;
+    const analysis = layout.analysis;
+    const access = layout.access;
+    const credit = layout.credit;
+
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = "rgba(235, 247, 255, 0.92)";
-    ctx.textAlign = "left";
     ctx.textBaseline = "top";
 
     // Identity
+    ctx.textAlign = identity.align;
     ctx.font = "600 18px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
-    ctx.fillText("IDENTITY", 110, 88);
+    ctx.fillText("IDENTITY", identity.x, identity.y);
 
     ctx.font = "700 42px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.96)";
-    ctx.fillText("CHARACTER NAME", 110, 120);
+    ctx.fillText("CHARACTER NAME", identity.x, identity.y + 32);
 
     ctx.font = "600 18px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
-    ctx.fillText("MAIN CLASS", 110, 190);
+    ctx.fillText("MAIN CLASS", identity.x, identity.y + 102);
 
     ctx.font = "700 28px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.94)";
-    ctx.fillText("DARK KNIGHT", 110, 220);
+    ctx.fillText("DARK KNIGHT", identity.x, identity.y + 132);
 
     // Origin
+    ctx.textAlign = origin.align;
     ctx.font = "600 18px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
-    ctx.fillText("ORIGIN", 110, 782);
+    ctx.fillText("ORIGIN", origin.x, origin.y);
 
     ctx.font = "700 22px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.94)";
-    ctx.fillText("MANA / IXION", 110, 820);
-    ctx.fillText("AU RA / RAEN", 110, 856);
+    ctx.fillText("MANA / IXION", origin.x, origin.y + 38);
+    ctx.fillText("AU RA / RAEN", origin.x, origin.y + 74);
 
     // Analysis
+    ctx.textAlign = analysis.align;
     ctx.font = "600 18px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
-    ctx.fillText("ANALYSIS", 1300, 176);
-
-    ctx.font = "600 18px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
-    ctx.fillText("ACTIVITY CLASS", 1300, 214);
+    ctx.fillText("ANALYSIS", analysis.x, analysis.y);
+    ctx.fillText("ACTIVITY CLASS", analysis.x, analysis.y + 38);
 
     ctx.font = "700 56px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.96)";
-    ctx.fillText("08 / 10", 1300, 248);
+    ctx.fillText("08 / 10", analysis.x, analysis.y + 72);
 
     ctx.font = "700 30px Segoe UI, sans-serif";
-    ctx.fillText("RESIDENT", 1300, 320);
+    ctx.fillText("RESIDENT", analysis.x, analysis.y + 144);
 
     ctx.font = "600 18px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
-    ctx.fillText("COMBAT", 1300, 384);
-    ctx.fillText("LIFE", 1668, 384);
+    ctx.textAlign = "left";
+    ctx.fillText("COMBAT", analysis.combatX, analysis.y + 208);
+    ctx.textAlign = "right";
+    ctx.fillText("LIFE", analysis.lifeX, analysis.y + 208);
 
-    // Gauge
+    const gaugeY = analysis.y + 216;
     ctx.strokeStyle = "rgba(210, 240, 255, 0.52)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(1368, 392);
-    ctx.lineTo(1630, 392);
+    ctx.moveTo(analysis.gaugeX, gaugeY + 6);
+    ctx.lineTo(analysis.gaugeX + 262, gaugeY + 6);
     ctx.stroke();
 
-    const grad = ctx.createLinearGradient(1368, 0, 1630, 0);
+    const grad = ctx.createLinearGradient(analysis.gaugeX, 0, analysis.gaugeX + 262, 0);
     grad.addColorStop(0, "rgba(255,108,108,0.95)");
     grad.addColorStop(0.5, "rgba(230,240,255,0.86)");
     grad.addColorStop(1, "rgba(103,229,188,0.95)");
     ctx.fillStyle = grad;
-    ctx.fillRect(1460, 386, 118, 12);
+    ctx.fillRect(analysis.gaugeX + 92, gaugeY, 118, 12);
 
     // Access
+    ctx.textAlign = access.align;
     ctx.font = "600 18px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
-    ctx.fillText("ACCESS", 1210, 814);
+    ctx.fillText("ACCESS", access.x, access.y);
 
     ctx.font = "700 22px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.95)";
-    ctx.fillText("DI1-7K4M-P8Q2-X9D6-C3", 1210, 850);
+    ctx.fillText("DI1-7K4M-P8Q2-X9D6-C3", access.codeX, access.y + 36);
 
-    // QR placeholder
     ctx.strokeStyle = "rgba(220, 240, 255, 0.55)";
-    ctx.strokeRect(1638, 824, 120, 120);
+    ctx.strokeRect(access.qrX, access.qrY, 120, 120);
     ctx.font = "600 16px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(220, 240, 255, 0.82)";
-    ctx.fillText("QR", 1686, 875);
+    ctx.textAlign = "center";
+    ctx.fillText("QR", access.qrX + 60, access.qrY + 51);
 
     // Credit
     ctx.font = "500 16px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(220, 236, 245, 0.76)";
-    ctx.fillText("Created by 鱗の旅人", 110, 1024);
-    ctx.fillText("© SQUARE ENIX", 110, 1048);
+    ctx.textAlign = credit.align;
+    ctx.fillText("Created by 鱗の旅人", credit.x, credit.y);
+    ctx.fillText("© SQUARE ENIX", credit.x, credit.y + 24);
+
+    // Preset Cだけ中央下のクレジットとエンブレムが近いため、待機区間でのみ表示される現仕様を維持
+    if (preset === "C") {
+      // 座標確定用の明示的な分岐。将来Access下へ移す場合もここだけ変更する。
+    }
 
     ctx.restore();
   }
@@ -1316,7 +1345,7 @@
       restartLoop();
       setStatus(`
         ジャンル: <strong>${GENRES[currentGenre].label}</strong> /
-        配置: <strong>${positionSelect.options[positionSelect.selectedIndex].text}</strong> /
+        プリセット: <strong>${positionSelect.options[positionSelect.selectedIndex].text}</strong> /
         サイズ: <strong>${sizeSelect.value}px</strong><br>
         表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark / 演出: black hold → emblem → SS reveal → long hold → emblem → black hold
       `);
