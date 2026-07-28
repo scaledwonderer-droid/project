@@ -956,15 +956,27 @@
     return { level: 10, label: "REALM DWELLER" };
   }
 
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
   function calculatePlayStyleAnalysis() {
     const selected = [...profileState.playStyles];
     if (selected.length < PLAY_STYLE_MIN) {
-      profileState.analysis = { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [], correction: null };
+      profileState.analysis = {
+        valid: false,
+        score: 0,
+        level: 0,
+        label: "UNRATED",
+        gaugePercent: 50,
+        details: [],
+        correction: null
+      };
       return profileState.analysis;
     }
 
-    // 選択順で結果が変わらないよう、同系統内では戦闘側ほど先、生活側ほど先に評価する。
-    // これにより、その系統を最も強く表す項目へ100%の重みが付く。
+    // 同系統内では絶対値の大きい項目から減衰率を割り当てる。
+    // 選択した順番によって結果が変わらないようにするための処理。
     const ordered = selected
       .map((name, order) => ({ name, order, rule: PLAY_STYLE_RULES[name] }))
       .filter(item => item.rule)
@@ -990,31 +1002,72 @@
       }
       weightedScoreTotal += rule.score * rate;
       weightTotal += rate;
-      details.push({ name, baseScore: rule.score, family: rule.family, rate, adjustedScore: rule.score * rate });
+      details.push({
+        name,
+        baseScore: rule.score,
+        family: rule.family,
+        rate,
+        adjustedScore: rule.score * rate
+      });
     });
 
     const rawScore = weightTotal ? weightedScoreTotal / weightTotal : 0;
-    let correctedScore = rawScore;
-    let correction = null;
 
-    // 高難度＋固定活動は、単なる平均ではなく「継続的な高難度活動」を示す支配的特徴として扱う。
-    if (selected.includes("高難度") && selected.includes("固定活動")) {
-      const additionalHardcore = [
-        "レイド", "討滅戦", "アライアンスレイド", "PvP",
-        "フロントライン", "クリスタルコンフリクト", "装備集め"
-      ].filter(name => selected.includes(name)).length;
+    // 基本平均だけでは、同じ方向の項目を多数・広範囲に選んだときに
+    // 弱い同方向項目が強い特徴を薄めてしまうため、構成全体の濃さを評価する。
+    const scoredItems = selected
+      .map(name => ({ name, ...PLAY_STYLE_RULES[name] }))
+      .filter(item => Number.isFinite(item.score));
 
-      const highEndFloor = additionalHardcore >= 2 ? -9.20 : -8.60;
-      if (correctedScore > highEndFloor) {
-        correctedScore = highEndFloor;
-        correction = additionalHardcore >= 2
-          ? "CORE HIGH-END / ELITE COMBAT"
-          : "CORE HIGH-END";
-      }
-    }
+    const dominantSign = rawScore < 0 ? -1 : rawScore > 0 ? 1 : 0;
+    const directionalItems = scoredItems.filter(item => item.score !== 0);
+    const dominantItems = dominantSign === 0
+      ? []
+      : directionalItems.filter(item => Math.sign(item.score) === dominantSign);
+    const opposingItems = dominantSign === 0
+      ? []
+      : directionalItems.filter(item => Math.sign(item.score) === -dominantSign);
 
-    const score = Math.max(-10, Math.min(10, correctedScore));
+    const purity = directionalItems.length
+      ? dominantItems.length / directionalItems.length
+      : 0;
+    const strongCount = dominantItems.filter(item => Math.abs(item.score) >= 5).length;
+    const extremeCount = dominantItems.filter(item => Math.abs(item.score) >= 7).length;
+    const dominantFamilies = new Set(dominantItems.map(item => item.family));
+    const breadth = dominantFamilies.size;
+
+    // 4項目以下では基本平均を中心にし、5項目以上かつ方向が揃うほど補正を強める。
+    const volumeActivation = clamp((dominantItems.length - 3) / 2, 0, 1);
+    const purityActivation = clamp((purity - 0.65) / 0.25, 0, 1);
+    const activation = volumeActivation * purityActivation;
+
+    const purityBonus = clamp((purity - 0.60) / 0.40, 0, 1) * 1.20;
+    const strengthBonus = Math.min(1.50, strongCount * 0.30 + extremeCount * 0.25);
+    const breadthBonus = Math.min(1.00, Math.max(0, breadth - 1) * 0.25);
+    const volumeBonus = Math.min(1.20, Math.max(0, dominantItems.length - 5) * 0.12);
+
+    const profileBonusMagnitude = activation * (
+      purityBonus + strengthBonus + breadthBonus + volumeBonus
+    );
+    const profileBonus = dominantSign * profileBonusMagnitude;
+    const correctedScore = rawScore + profileBonus;
+    const score = clamp(correctedScore, -10, 10);
     const classification = classifyActivity(score);
+
+    const correction = profileBonusMagnitude >= 0.01
+      ? {
+          label: "DIRECTIONAL PROFILE",
+          amount: profileBonus,
+          purity,
+          dominantCount: dominantItems.length,
+          opposingCount: opposingItems.length,
+          strongCount,
+          extremeCount,
+          breadth,
+          activation
+        }
+      : null;
+
     profileState.analysis = {
       valid: true,
       score,
@@ -1047,9 +1100,14 @@
       entry.weight += detail.rate;
       familyTotals.set(detail.family, entry);
     });
-    analysisBreakdown.textContent = [...familyTotals.entries()]
-      .map(([family, value]) => `${FAMILY_LABELS[family]} ${value.count}項目（補正率計${value.weight.toFixed(1)}）`)
-      .join(" / ");
+    const breakdownParts = [...familyTotals.entries()]
+      .map(([family, value]) => `${FAMILY_LABELS[family]} ${value.count}項目（補正率計${value.weight.toFixed(1)}）`);
+    if (result.correction) {
+      const sign = result.correction.amount >= 0 ? "+" : "";
+      breakdownParts.push(`基本 ${result.rawScore >= 0 ? "+" : ""}${result.rawScore.toFixed(2)}`);
+      breakdownParts.push(`方向性補正 ${sign}${result.correction.amount.toFixed(2)}`);
+    }
+    analysisBreakdown.textContent = breakdownParts.join(" / ");
   }
 
   const BASE_LAYER_ALPHA = {
