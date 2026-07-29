@@ -2189,7 +2189,49 @@
     }
   }
 
-  function drawJobMark(cx, cy, alpha, phase = 1) {
+  function drawJobMarkGlow(markImg, cx, cy, dw, dh, accentColor, alpha, glowBoost, phase = 1) {
+    if (!markImg || alpha <= 0) return;
+
+    const glowCanvas = getTintedJobMarkCanvas(markImg, accentColor);
+    if (!glowCanvas) return;
+
+    const phaseBoost = lerp(1.12, 1.0, clamp01(phase));
+    const boost = Math.max(0.5, glowBoost) * phaseBoost;
+    const coreScale = 1.00 + boost * 0.010;
+    const innerScale = 1.05 + boost * 0.018;
+    const outerScale = 1.12 + boost * 0.028;
+    const haloScale = 1.20 + boost * 0.040;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.min(0.40, 0.16 + boost * 0.04) * alpha;
+    ctx.filter = "blur(0px)";
+    ctx.drawImage(glowCanvas, cx - (dw * coreScale) / 2, cy - (dh * coreScale) / 2, dw * coreScale, dh * coreScale);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.min(0.48, 0.18 + boost * 0.05) * alpha;
+    ctx.filter = `blur(${Math.round(10 + boost * 6)}px)`;
+    ctx.drawImage(glowCanvas, cx - (dw * innerScale) / 2, cy - (dh * innerScale) / 2, dw * innerScale, dh * innerScale);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.min(0.34, 0.11 + boost * 0.04) * alpha;
+    ctx.filter = `blur(${Math.round(22 + boost * 10)}px)`;
+    ctx.drawImage(glowCanvas, cx - (dw * outerScale) / 2, cy - (dh * outerScale) / 2, dw * outerScale, dh * outerScale);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.min(0.24, 0.07 + boost * 0.028) * alpha;
+    ctx.filter = `blur(${Math.round(42 + boost * 14)}px)`;
+    ctx.drawImage(glowCanvas, cx - (dw * haloScale) / 2, cy - (dh * haloScale) / 2, dw * haloScale, dh * haloScale);
+    ctx.restore();
+  }
+
+  function drawJobMark(cx, cy, alpha, phase = 1, accentColor = "#67d3ff", glowBoost = 4.0) {
     if (!showJobMark.checked || alpha <= 0) return;
 
     const job = JOBS[currentJobId];
@@ -2206,10 +2248,12 @@
       const dw = iw * ratio;
       const dh = ih * ratio;
 
+      drawJobMarkGlow(jobMarkImage, markX, markY, dw, dh, accentColor, alpha, glowBoost, phase);
+
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.shadowColor = "rgba(0,0,0,0.35)";
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = "rgba(0,0,0,0.38)";
+      ctx.shadowBlur = 12;
       ctx.drawImage(jobMarkImage, markX - dw / 2, markY - dh / 2, dw, dh);
       ctx.restore();
       return;
@@ -2219,6 +2263,8 @@
     ctx.save();
     ctx.translate(markX, markY);
     ctx.globalAlpha = alpha;
+    ctx.shadowColor = accentColor;
+    ctx.shadowBlur = 16 + glowBoost * 8;
 
     ctx.strokeStyle = "rgba(224, 244, 255, 0.92)";
     ctx.fillStyle = "rgba(224, 244, 255, 0.08)";
