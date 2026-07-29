@@ -1583,6 +1583,7 @@
   let bgImage = null;
   let jobMarkImage = null;
   let jobMarkLoadRequestId = 0;
+  const jobMarkGlowCache = new WeakMap();
   const ssTransform = {
     scale: 1,
     offsetX: 0,
@@ -1943,6 +1944,19 @@
       item.glowTintCache[color] = makeTintedCanvas(item.images.glowMask, color);
     }
     return item.glowTintCache[color];
+  }
+
+  function getTintedJobMarkCanvas(markImg, color) {
+    if (!markImg) return null;
+    let colorCache = jobMarkGlowCache.get(markImg);
+    if (!colorCache) {
+      colorCache = {};
+      jobMarkGlowCache.set(markImg, colorCache);
+    }
+    if (!colorCache[color]) {
+      colorCache[color] = makeTintedCanvas(markImg, color);
+    }
+    return colorCache[color];
   }
 
   function getSsBaseScale(img) {
@@ -2549,7 +2563,7 @@
       glowBoost
     );
 
-    drawJobMark(pos.x, pos.y, BASE_LAYER_ALPHA.jobMark * presentation.jobMark, presentation.jobMark);
+    drawJobMark(pos.x, pos.y, BASE_LAYER_ALPHA.jobMark * presentation.jobMark, presentation.jobMark, cfg.accent, glowBoost);
 
     // SS reveal 完了後の鑑賞時間でUIを見せる
     drawOverlayTextBlock(presentation.uiAlpha);
