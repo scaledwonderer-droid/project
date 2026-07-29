@@ -498,6 +498,42 @@
 
   .details-grid > .field:has(.subjob-box),
 
+  .id-code-panel {
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid rgba(103, 211, 255, 0.32);
+    background: rgba(5, 14, 24, 0.78);
+    border-radius: 10px;
+  }
+
+  .id-code-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .id-code-output {
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid rgba(180, 229, 255, 0.38);
+    border-radius: 8px;
+    background: #06101b;
+    color: #eefaff;
+    font-family: Consolas, "SFMono-Regular", monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    word-break: break-all;
+    user-select: all;
+  }
+
+  .id-code-status {
+    margin-top: 8px;
+    color: rgba(205, 232, 245, 0.76);
+    font-size: 12px;
+  }
+
   .analysis-result-panel {
     margin-top: 14px;
     padding: 14px 16px;
@@ -800,6 +836,16 @@
 </div>
 <div class="qr-status" id="qrStatus">URLを入力し、表示をONにするとプレビューへ反映されます。</div>
 <div class="hint">X、Lodestone、CarrdなどのURLに使用できます。QR内部には発光や走査線を重ねません。</div>
+</div><div class="section-title">RESTORE ID</div><div class="field">
+<label>復元用IDコード</label>
+<div class="id-code-panel">
+  <div class="id-code-row">
+    <div class="id-code-output" id="restoreIdOutput">DI1-生成中</div>
+    <button class="secondary compact-button" id="copyRestoreIdBtn" type="button">コピー</button>
+  </div>
+  <div class="id-code-status" id="restoreIdStatus">入力内容に応じて自動更新されます。</div>
+</div>
+<div class="hint">SS画像・位置・拡大率・左右反転はコードへ保存しません。QRのURL本文も保存せず、表示設定のみ保存します。</div>
 </div></div></div>
 </div>
 <script>
@@ -829,6 +875,9 @@
   const qrUrlInput = document.getElementById("qrUrlInput");
   const qrEnabledInput = document.getElementById("qrEnabledInput");
   const qrStatus = document.getElementById("qrStatus");
+  const restoreIdOutput = document.getElementById("restoreIdOutput");
+  const copyRestoreIdBtn = document.getElementById("copyRestoreIdBtn");
+  const restoreIdStatus = document.getElementById("restoreIdStatus");
   const positionSelect = document.getElementById("positionSelect");
   const sizeSelect = document.getElementById("sizeSelect");
   const frameOpacitySlider = document.getElementById("frameOpacity");
@@ -886,7 +935,8 @@
     analysis: { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [] },
     qrEnabled: false,
     qrUrl: "",
-    qrMatrix: null
+    qrMatrix: null,
+    idCode: ""
   };
 
   const PLAY_STYLE_MIN = 3;
@@ -1003,6 +1053,131 @@
     return Math.max(min, Math.min(max, value));
   }
 
+
+  const ID_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const ID_SPEC_VERSION = 1;
+  const ANALYSIS_SPEC_VERSION = 2;
+
+  function writeBits(parts, value, width) {
+    const mask = (1n << BigInt(width)) - 1n;
+    parts.value = (parts.value << BigInt(width)) | (BigInt(value) & mask);
+    parts.length += width;
+  }
+
+  function crc16Ccitt(bytes) {
+    let crc = 0xffff;
+    for (const byte of bytes) {
+      crc ^= byte << 8;
+      for (let i = 0; i < 8; i++) {
+        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+      }
+    }
+    return crc;
+  }
+
+  function bigIntToBytes(value, bitLength) {
+    const byteLength = Math.ceil(bitLength / 8);
+    const result = new Uint8Array(byteLength);
+    let work = value;
+    for (let i = byteLength - 1; i >= 0; i--) {
+      result[i] = Number(work & 0xffn);
+      work >>= 8n;
+    }
+    return result;
+  }
+
+  function encodeBase32Bits(value, bitLength) {
+    const charLength = Math.ceil(bitLength / 5);
+    const paddedBits = charLength * 5;
+    let work = value << BigInt(paddedBits - bitLength);
+    let output = "";
+    for (let i = charLength - 1; i >= 0; i--) {
+      const shift = BigInt(i * 5);
+      output += ID_ALPHABET[Number((work >> shift) & 31n)];
+    }
+    return output;
+  }
+
+  function buildRestoreIdCode() {
+    const jobs = Object.keys(JOBS);
+    const dcNames = Object.keys(DATA_CENTERS);
+    const raceNames = Object.keys(RACES);
+    const playStyleNames = PLAY_STYLE_GROUPS.flatMap(group => group.items);
+    const parts = { value: 0n, length: 0 };
+
+    const mainJobIndex = Math.max(0, jobs.indexOf(currentJobId));
+    let subJobMask = 0n;
+    jobs.forEach((jobId, index) => {
+      if (profileState.subJobs.has(jobId)) subJobMask |= 1n << BigInt(index);
+    });
+
+    const dcIndex = Math.max(0, dcNames.indexOf(profileState.dataCenter));
+    const worldIndex = Math.max(0, (DATA_CENTERS[profileState.dataCenter] || []).indexOf(profileState.world));
+    const raceIndex = Math.max(0, raceNames.indexOf(profileState.race));
+    const clanIndex = Math.max(0, (RACES[profileState.race] || []).indexOf(profileState.clan));
+
+    let playStyleMask = 0n;
+    playStyleNames.forEach((name, index) => {
+      if (profileState.playStyles.has(name)) playStyleMask |= 1n << BigInt(index);
+    });
+
+    const scoreQuantized = profileState.analysis.valid
+      ? Math.max(0, Math.min(2000, Math.round((profileState.analysis.score + 10) * 100)))
+      : 1000;
+    const presetIndex = { A: 0, B: 1, C: 2 }[positionSelect.value] ?? 2;
+    const sizeIndex = Math.max(0, Math.min(3, sizeSelect.selectedIndex));
+
+    writeBits(parts, ID_SPEC_VERSION, 4);
+    writeBits(parts, ANALYSIS_SPEC_VERSION, 4);
+    writeBits(parts, mainJobIndex, 6);
+    writeBits(parts, subJobMask, jobs.length);
+    writeBits(parts, dcIndex, 4);
+    writeBits(parts, worldIndex, 3);
+    writeBits(parts, raceIndex, 3);
+    writeBits(parts, clanIndex, 1);
+    writeBits(parts, playStyleMask, playStyleNames.length);
+    writeBits(parts, profileState.analysis.valid ? profileState.analysis.level : 0, 4);
+    writeBits(parts, scoreQuantized, 11);
+    writeBits(parts, presetIndex, 2);
+    writeBits(parts, profileState.qrEnabled ? 1 : 0, 1);
+    writeBits(parts, sizeIndex, 2);
+    writeBits(parts, 0, 1); // DARK theme
+    writeBits(parts, 0, 8); // reserved
+
+    const payloadBytes = bigIntToBytes(parts.value, parts.length);
+    const checksum = crc16Ccitt(payloadBytes);
+    writeBits(parts, checksum, 16);
+
+    const encoded = encodeBase32Bits(parts.value, parts.length);
+    const grouped = encoded.match(/.{1,5}/g).join("-");
+    return `DI1-${grouped}`;
+  }
+
+  function updateRestoreIdCode() {
+    const code = buildRestoreIdCode();
+    profileState.idCode = code;
+    restoreIdOutput.textContent = code;
+    restoreIdStatus.textContent = profileState.analysis.valid
+      ? `ID仕様 v${ID_SPEC_VERSION} / 分析仕様 v${ANALYSIS_SPEC_VERSION}｜チェック値付き`
+      : `分析未確定の状態で生成中｜3項目以上選ぶと分析結果も保存されます`;
+  }
+
+  async function copyRestoreIdCode() {
+    const code = profileState.idCode || buildRestoreIdCode();
+    try {
+      await navigator.clipboard.writeText(code);
+      copyRestoreIdBtn.textContent = "コピー済み";
+      restoreIdStatus.textContent = "復元用IDコードをクリップボードへコピーしました。";
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(restoreIdOutput);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      restoreIdStatus.textContent = "コードを選択しました。Ctrl+Cでコピーしてください。";
+    }
+    window.setTimeout(() => { copyRestoreIdBtn.textContent = "コピー"; }, 1400);
+  }
 
   // 固定Version 5-L（最大106 UTF-8 bytes）のローカルQR生成器。
   // 外部APIや外部ライブラリを使わず、ブラウザ内だけで生成する。
@@ -1202,6 +1377,7 @@
     if (!profileState.qrUrl) {
       qrStatus.textContent = profileState.qrEnabled ? "URLを入力してください。" : "URLを入力し、表示をONにするとプレビューへ反映されます。";
       if (profileState.qrEnabled) qrStatus.classList.add("error");
+      updateRestoreIdCode();
       return;
     }
     try {
@@ -1212,6 +1388,7 @@
     } catch (error) {
       qrStatus.textContent = error.message || "QRコードを生成できませんでした。";
       qrStatus.classList.add("error");
+      updateRestoreIdCode();
     }
   }
 
@@ -1363,6 +1540,7 @@
       analysisResultScore.textContent = "3項目以上選択してください";
       analysisResultMarker.style.left = "50%";
       analysisBreakdown.textContent = "選択内容に応じて分析結果がここへ表示されます。";
+      updateRestoreIdCode();
       return;
     }
     analysisResultClass.textContent = `${String(result.level).padStart(2, "0")} / 10　${result.label}`;
@@ -1383,6 +1561,7 @@
       breakdownParts.push(`方向性補正 ${sign}${result.correction.amount.toFixed(2)}`);
     }
     analysisBreakdown.textContent = breakdownParts.join(" / ");
+    updateRestoreIdCode();
   }
 
   const BASE_LAYER_ALPHA = {
@@ -1630,12 +1809,14 @@
     const [dataCenter = "", world = ""] = dataCenterSelect.value.split("|");
     profileState.dataCenter = dataCenter;
     profileState.world = world;
+    updateRestoreIdCode();
   }
 
   function applyRaceClanSelection() {
     const [race = "", clan = ""] = raceSelect.value.split("|");
     profileState.race = race;
     profileState.clan = clan;
+    updateRestoreIdCode();
   }
 
   function renderSubJobOptions() {
@@ -1653,6 +1834,7 @@
         if (input.checked) profileState.subJobs.add(jobId);
         else profileState.subJobs.delete(jobId);
         updateSubJobSummary();
+        updateRestoreIdCode();
       });
       const text = document.createElement("span");
       text.textContent = `${job.nameJa} / ${job.nameEn}`;
@@ -2418,7 +2600,7 @@
 
     ctx.font = "700 22px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(236, 246, 255, 0.95)";
-    ctx.fillText("DI1-7K4M-P8Q2-X9D6-C3", access.codeX, access.y + 36);
+    ctx.fillText(profileState.idCode || "DI1-GENERATING", access.codeX, access.y + 36);
 
     if (profileState.qrEnabled && profileState.qrMatrix) {
       drawQrCode(profileState.qrMatrix, access.qrX, access.qrY, 120, 120);
@@ -2709,6 +2891,7 @@
 
   qrUrlInput.addEventListener("input", updateQrState);
   qrEnabledInput.addEventListener("change", updateQrState);
+  copyRestoreIdBtn.addEventListener("click", copyRestoreIdCode);
 
   dataCenterSelect.addEventListener("change", applyDcWorldSelection);
 
@@ -2719,13 +2902,20 @@
     currentGenre = JOBS[currentJobId].genre;
     profileState.subJobs.delete(currentJobId);
     renderSubJobOptions();
+    updateRestoreIdCode();
     updateAccentUI();
     await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
     restartLoop();
   });
 
-  positionSelect.addEventListener("change", ensureCurrentGenreLoaded);
-  sizeSelect.addEventListener("change", ensureCurrentGenreLoaded);
+  positionSelect.addEventListener("change", () => {
+    updateRestoreIdCode();
+    ensureCurrentGenreLoaded();
+  });
+  sizeSelect.addEventListener("change", () => {
+    updateRestoreIdCode();
+    ensureCurrentGenreLoaded();
+  });
 
   frameOpacitySlider.addEventListener("input", () => {
     frameOpacityValue.textContent = Number(frameOpacitySlider.value).toFixed(2);
