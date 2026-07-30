@@ -534,6 +534,32 @@
     font-size: 12px;
   }
 
+  .restore-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .restore-code-input {
+    font-family: Consolas, "SFMono-Regular", monospace;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .restore-apply-status {
+    min-height: 20px;
+    margin-bottom: 10px;
+    color: rgba(205, 232, 245, 0.76);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .restore-apply-status.success { color: #98e7c7; }
+  .restore-apply-status.error { color: #ffb4ba; }
+  .restore-apply-status.warning { color: #ffe0a6; }
+
   .analysis-result-panel {
     margin-top: 14px;
     padding: 14px 16px;
@@ -837,15 +863,21 @@
 <div class="qr-status" id="qrStatus">URLを入力し、表示をONにするとプレビューへ反映されます。</div>
 <div class="hint">X、Lodestone、CarrdなどのURLに使用できます。QR内部には発光や走査線を重ねません。</div>
 </div><div class="section-title">RESTORE ID</div><div class="field">
-<label>復元用IDコード</label>
+<label for="restoreIdInput">復元用IDコードを入力</label>
 <div class="id-code-panel">
+  <div class="restore-input-row">
+    <input autocomplete="off" class="restore-code-input" id="restoreIdInput" placeholder="DI1-XXXXX-XXXXX-..." spellcheck="false" type="text"/>
+    <button class="compact-button" id="applyRestoreIdBtn" type="button">設定を復元</button>
+  </div>
+  <div class="restore-apply-status" id="restoreApplyStatus">コードを貼り付けると、保存対象の設定を復元できます。</div>
+  <label>現在の設定から生成されたIDコード</label>
   <div class="id-code-row">
     <div class="id-code-output" id="restoreIdOutput">DI1-生成中</div>
     <button class="secondary compact-button" id="copyRestoreIdBtn" type="button">コピー</button>
   </div>
   <div class="id-code-status" id="restoreIdStatus">入力内容に応じて自動更新されます。</div>
 </div>
-<div class="hint">SS画像・位置・拡大率・左右反転はコードへ保存しません。QRのURL本文も保存せず、表示設定のみ保存します。</div>
+<div class="hint">SS画像・キャラクター名・SS位置・拡大率・左右反転・QRのURL本文は復元されません。</div>
 </div></div></div>
 </div>
 <script>
@@ -875,6 +907,9 @@
   const qrUrlInput = document.getElementById("qrUrlInput");
   const qrEnabledInput = document.getElementById("qrEnabledInput");
   const qrStatus = document.getElementById("qrStatus");
+  const restoreIdInput = document.getElementById("restoreIdInput");
+  const applyRestoreIdBtn = document.getElementById("applyRestoreIdBtn");
+  const restoreApplyStatus = document.getElementById("restoreApplyStatus");
   const restoreIdOutput = document.getElementById("restoreIdOutput");
   const copyRestoreIdBtn = document.getElementById("copyRestoreIdBtn");
   const restoreIdStatus = document.getElementById("restoreIdStatus");
@@ -1153,6 +1188,184 @@
     return `DI1-${grouped}`;
   }
 
+  function normalizeRestoreIdCode(input) {
+    return String(input || "").toUpperCase().replace(/[\s-]+/g, "");
+  }
+
+  function decodeBase32Bits(encoded, bitLength) {
+    let value = 0n;
+    for (const char of encoded) {
+      const index = ID_ALPHABET.indexOf(char);
+      if (index < 0) throw new Error(`使用できない文字「${char}」が含まれています。`);
+      value = (value << 5n) | BigInt(index);
+    }
+    const paddedBits = encoded.length * 5;
+    if (paddedBits < bitLength) throw new Error("IDコードが短すぎます。");
+    const paddingBits = paddedBits - bitLength;
+    if (paddingBits > 4) throw new Error("IDコードの長さが正しくありません。");
+    if (paddingBits > 0) {
+      const paddingMask = (1n << BigInt(paddingBits)) - 1n;
+      if ((value & paddingMask) !== 0n) throw new Error("IDコード末尾の形式が正しくありません。");
+      value >>= BigInt(paddingBits);
+    }
+    return value;
+  }
+
+  function readBits(reader, width) {
+    if (reader.remaining < width) throw new Error("IDコードのデータが不足しています。");
+    const shift = BigInt(reader.remaining - width);
+    const mask = (1n << BigInt(width)) - 1n;
+    const value = Number((reader.value >> shift) & mask);
+    reader.remaining -= width;
+    return value;
+  }
+
+  function parseRestoreIdCode(input) {
+    const normalized = normalizeRestoreIdCode(input);
+    if (!normalized) throw new Error("復元用IDコードを入力してください。");
+    if (!normalized.startsWith("DI1")) throw new Error("DI1形式のIDコードではありません。");
+
+    const encoded = normalized.slice(3);
+    const jobs = Object.keys(JOBS);
+    const dcNames = Object.keys(DATA_CENTERS);
+    const raceNames = Object.keys(RACES);
+    const playStyleNames = PLAY_STYLE_GROUPS.flatMap(group => group.items);
+    const payloadBitLength = 4 + 4 + 6 + jobs.length + 4 + 3 + 3 + 1 + playStyleNames.length + 4 + 11 + 2 + 1 + 2 + 1 + 8;
+    const totalBitLength = payloadBitLength + 16;
+    const expectedChars = Math.ceil(totalBitLength / 5);
+    if (encoded.length !== expectedChars) {
+      throw new Error(`IDコードの長さが正しくありません（${expectedChars}文字必要です）。`);
+    }
+
+    const allBits = decodeBase32Bits(encoded, totalBitLength);
+    const checksum = Number(allBits & 0xffffn);
+    const payload = allBits >> 16n;
+    const calculatedChecksum = crc16Ccitt(bigIntToBytes(payload, payloadBitLength));
+    if (checksum !== calculatedChecksum) throw new Error("CRC16チェックに失敗しました。コードの欠損や入力ミスを確認してください。");
+
+    const reader = { value: payload, remaining: payloadBitLength };
+    const idVersion = readBits(reader, 4);
+    const analysisVersion = readBits(reader, 4);
+    if (idVersion !== ID_SPEC_VERSION) {
+      throw new Error(`未対応のID仕様 v${idVersion} です（対応: v${ID_SPEC_VERSION}）。`);
+    }
+    if (analysisVersion !== ANALYSIS_SPEC_VERSION) {
+      throw new Error(`未対応の分析仕様 v${analysisVersion} です（対応: v${ANALYSIS_SPEC_VERSION}）。`);
+    }
+
+    const mainJobIndex = readBits(reader, 6);
+    let subJobMask = 0n;
+    for (let i = 0; i < jobs.length; i++) {
+      subJobMask = (subJobMask << 1n) | BigInt(readBits(reader, 1));
+    }
+    const dcIndex = readBits(reader, 4);
+    const worldIndex = readBits(reader, 3);
+    const raceIndex = readBits(reader, 3);
+    const clanIndex = readBits(reader, 1);
+    let playStyleMask = 0n;
+    for (let i = 0; i < playStyleNames.length; i++) {
+      playStyleMask = (playStyleMask << 1n) | BigInt(readBits(reader, 1));
+    }
+    const storedLevel = readBits(reader, 4);
+    const storedScoreQuantized = readBits(reader, 11);
+    const presetIndex = readBits(reader, 2);
+    const qrEnabled = readBits(reader, 1) === 1;
+    const sizeIndex = readBits(reader, 2);
+    const themeIndex = readBits(reader, 1);
+    const reserved = readBits(reader, 8);
+
+    if (reader.remaining !== 0) throw new Error("IDコード内に未解析データがあります。");
+    if (!jobs[mainJobIndex]) throw new Error("メインジョブ番号が範囲外です。");
+    if (!dcNames[dcIndex] || !DATA_CENTERS[dcNames[dcIndex]][worldIndex]) throw new Error("DC / World情報が範囲外です。");
+    if (!raceNames[raceIndex] || !RACES[raceNames[raceIndex]][clanIndex]) throw new Error("種族 / 部族情報が範囲外です。");
+    if (presetIndex > 2) throw new Error("レイアウトプリセット情報が範囲外です。");
+    if (sizeIndex >= sizeSelect.options.length) throw new Error("エンブレムサイズ情報が範囲外です。");
+    if (themeIndex !== 0) throw new Error("このHTMLはDARKテーマのIDのみ復元できます。");
+
+    const subJobs = new Set();
+    jobs.forEach((jobId, index) => {
+      if ((subJobMask & (1n << BigInt(index))) !== 0n) subJobs.add(jobId);
+    });
+    subJobs.delete(jobs[mainJobIndex]);
+
+    const playStyles = new Set();
+    playStyleNames.forEach((name, index) => {
+      if ((playStyleMask & (1n << BigInt(index))) !== 0n) playStyles.add(name);
+    });
+    if (playStyles.size > PLAY_STYLE_MAX) throw new Error("プレイスタイル選択数が上限を超えています。");
+
+    return {
+      idVersion,
+      analysisVersion,
+      mainJobId: jobs[mainJobIndex],
+      subJobs,
+      dataCenter: dcNames[dcIndex],
+      world: DATA_CENTERS[dcNames[dcIndex]][worldIndex],
+      race: raceNames[raceIndex],
+      clan: RACES[raceNames[raceIndex]][clanIndex],
+      playStyles,
+      storedLevel,
+      storedScore: (storedScoreQuantized / 100) - 10,
+      preset: ["A", "B", "C"][presetIndex],
+      qrEnabled,
+      sizeIndex,
+      themeIndex,
+      reserved
+    };
+  }
+
+  function setRestoreApplyStatus(message, type = "") {
+    restoreApplyStatus.className = "restore-apply-status";
+    if (type) restoreApplyStatus.classList.add(type);
+    restoreApplyStatus.textContent = message;
+  }
+
+  async function applyRestoreIdCode() {
+    applyRestoreIdBtn.disabled = true;
+    try {
+      const restored = parseRestoreIdCode(restoreIdInput.value);
+
+      currentJobId = restored.mainJobId;
+      currentGenre = JOBS[currentJobId].genre;
+      mainJobSelect.value = currentJobId;
+      profileState.subJobs = new Set(restored.subJobs);
+      profileState.dataCenter = restored.dataCenter;
+      profileState.world = restored.world;
+      profileState.race = restored.race;
+      profileState.clan = restored.clan;
+      profileState.playStyles = new Set(restored.playStyles);
+      profileState.qrEnabled = restored.qrEnabled;
+
+      populateGroupedPairSelect(dataCenterSelect, DATA_CENTERS, `${restored.dataCenter}|${restored.world}`);
+      populateGroupedPairSelect(raceSelect, RACES, `${restored.race}|${restored.clan}`);
+      positionSelect.value = restored.preset;
+      sizeSelect.selectedIndex = restored.sizeIndex;
+      qrEnabledInput.checked = restored.qrEnabled;
+
+      renderSubJobOptions();
+      renderPlayStyleOptions();
+      updateQrState();
+      updateAccentUI();
+      await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
+      restartLoop();
+
+      const recalculated = profileState.analysis;
+      const scoreMatches = recalculated.valid
+        ? Math.abs(recalculated.score - restored.storedScore) <= 0.011 && recalculated.level === restored.storedLevel
+        : restored.storedLevel === 0;
+      const reservedNote = restored.reserved ? `｜予約領域 ${restored.reserved}` : "";
+      if (scoreMatches) {
+        setRestoreApplyStatus(`設定を復元しました。SS・キャラクター名・QRのURL本文は再設定してください${reservedNote}。`, "success");
+      } else {
+        setRestoreApplyStatus("設定は復元しましたが、保存時の分析結果と再計算結果が一致しません。コード内容を確認してください。", "warning");
+      }
+    } catch (error) {
+      setRestoreApplyStatus(error.message || "IDコードを復元できませんでした。", "error");
+    } finally {
+      applyRestoreIdBtn.disabled = false;
+    }
+  }
+
   function updateRestoreIdCode() {
     const code = buildRestoreIdCode();
     profileState.idCode = code;
@@ -1385,6 +1598,7 @@
       const byteLength = new TextEncoder().encode(profileState.qrUrl).length;
       qrStatus.textContent = `QR生成済み｜${byteLength} / 106 bytes`;
       qrStatus.classList.add("ready");
+      updateRestoreIdCode();
     } catch (error) {
       qrStatus.textContent = error.message || "QRコードを生成できませんでした。";
       qrStatus.classList.add("error");
@@ -2891,6 +3105,14 @@
 
   qrUrlInput.addEventListener("input", updateQrState);
   qrEnabledInput.addEventListener("change", updateQrState);
+  applyRestoreIdBtn.addEventListener("click", applyRestoreIdCode);
+  restoreIdInput.addEventListener("input", () => {
+    restoreIdInput.value = restoreIdInput.value.toUpperCase();
+    setRestoreApplyStatus("コードを貼り付けると、保存対象の設定を復元できます。");
+  });
+  restoreIdInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") applyRestoreIdCode();
+  });
   copyRestoreIdBtn.addEventListener("click", copyRestoreIdCode);
 
   dataCenterSelect.addEventListener("change", applyDcWorldSelection);
