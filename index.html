@@ -2716,6 +2716,42 @@
     ctx.restore();
   }
 
+  function drawUiBackdrop(block, accentColor, alpha = 1) {
+    if (!block?.box || alpha <= 0) return;
+    const [x, y, w, h] = block.box;
+    const rightAligned = block.align === "right";
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    if (rightAligned) {
+      grad.addColorStop(0, "rgba(4, 10, 18, 0.00)");
+      grad.addColorStop(0.30, "rgba(4, 10, 18, 0.18)");
+      grad.addColorStop(1, "rgba(4, 10, 18, 0.62)");
+    } else {
+      grad.addColorStop(0, "rgba(4, 10, 18, 0.62)");
+      grad.addColorStop(0.70, "rgba(4, 10, 18, 0.18)");
+      grad.addColorStop(1, "rgba(4, 10, 18, 0.00)");
+    }
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, w, h);
+
+    const lineGrad = ctx.createLinearGradient(x, 0, x + w, 0);
+    if (rightAligned) {
+      lineGrad.addColorStop(0, "rgba(255,255,255,0)");
+      lineGrad.addColorStop(0.45, accentColor);
+      lineGrad.addColorStop(1, accentColor);
+    } else {
+      lineGrad.addColorStop(0, accentColor);
+      lineGrad.addColorStop(0.55, accentColor);
+      lineGrad.addColorStop(1, "rgba(255,255,255,0)");
+    }
+    ctx.globalAlpha = alpha * 0.42;
+    ctx.fillStyle = lineGrad;
+    ctx.fillRect(x, y, w, 1.5);
+    ctx.restore();
+  }
+
   function drawOverlayTextBlock(alpha = 1) {
     if (!showOverlayText.checked || alpha <= 0) return;
 
@@ -2730,6 +2766,17 @@
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.textBaseline = "top";
+
+    const accent = GENRES[currentGenre]?.accent || "#67d3ff";
+    drawUiBackdrop(identity, accent, alpha);
+    drawUiBackdrop(origin, accent, alpha);
+    drawUiBackdrop(analysis, accent, alpha);
+    drawUiBackdrop(access, accent, alpha);
+
+    ctx.shadowColor = "rgba(0, 0, 0, 0.88)";
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
 
     // Identity
     ctx.textAlign = identity.align;
@@ -2816,6 +2863,8 @@
     ctx.fillStyle = "rgba(236, 246, 255, 0.95)";
     ctx.fillText(profileState.idCode || "DI1-GENERATING", access.codeX, access.y + 36);
 
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
     if (profileState.qrEnabled && profileState.qrMatrix) {
       drawQrCode(profileState.qrMatrix, access.qrX, access.qrY, 120, 120);
     } else {
@@ -2828,6 +2877,9 @@
     }
 
     // Credit
+    ctx.shadowColor = "rgba(0, 0, 0, 0.82)";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 2;
     ctx.font = "500 16px Segoe UI, sans-serif";
     ctx.fillStyle = "rgba(220, 236, 245, 0.76)";
     ctx.textAlign = credit.align;
