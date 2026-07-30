@@ -1795,7 +1795,7 @@
       identity: { x: 110, y: 88, align: "left", box: [92, 76, 520, 210] },
       origin: { x: 110, y: 782, align: "left", box: [110, 770, 520, 180] },
       analysis: { x: 1300, y: 176, align: "left", box: [1288, 164, 480, 300], combatX: 1300, lifeX: 1668, gaugeX: 1368 },
-      access: { x: 1210, y: 814, align: "left", box: [1200, 802, 600, 182], qrX: 1638, qrY: 824, codeX: 1210 },
+      access: { x: 1210, y: 814, align: "left", box: [1200, 802, 600, 182], qrX: 1638, qrY: 856, codeX: 1210, codeWidth: 392 },
       credit: { x: 110, y: 1024, align: "left" }
     },
     B: {
@@ -1803,7 +1803,7 @@
       identity: { x: 1810, y: 88, align: "right", box: [1308, 76, 520, 210] },
       origin: { x: 1810, y: 782, align: "right", box: [1290, 770, 520, 180] },
       analysis: { x: 170, y: 176, align: "left", box: [152, 164, 480, 300], combatX: 170, lifeX: 538, gaugeX: 238 },
-      access: { x: 258, y: 814, align: "left", box: [120, 802, 600, 182], qrX: 120, qrY: 824, codeX: 258 },
+      access: { x: 258, y: 814, align: "left", box: [120, 802, 600, 182], qrX: 120, qrY: 856, codeX: 258, codeWidth: 392 },
       credit: { x: 1810, y: 1024, align: "right" }
     },
     C: {
@@ -1811,7 +1811,7 @@
       identity: { x: 1810, y: 782, align: "right", box: [1218, 770, 610, 214] },
       origin: { x: 1810, y: 88, align: "right", box: [1308, 76, 520, 180] },
       analysis: { x: 110, y: 88, align: "left", box: [92, 76, 520, 300], combatX: 110, lifeX: 478, gaugeX: 178 },
-      access: { x: 258, y: 814, align: "left", box: [92, 802, 600, 182], qrX: 110, qrY: 824, codeX: 258 },
+      access: { x: 258, y: 814, align: "left", box: [92, 802, 600, 182], qrX: 110, qrY: 856, codeX: 258, codeWidth: 392 },
       credit: { x: 960, y: 1024, align: "center" }
     }
   };
@@ -2397,8 +2397,8 @@
     ctx.globalAlpha = alpha;
 
     const g = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-    g.addColorStop(0, "#08101a");
-    g.addColorStop(1, "#03060b");
+    g.addColorStop(0, "#0c1521");
+    g.addColorStop(1, "#070b12");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
@@ -2718,37 +2718,28 @@
 
   function drawUiBackdrop(block, accentColor, alpha = 1) {
     if (!block?.box || alpha <= 0) return;
-    const [x, y, w, h] = block.box;
+    const [x, y, w] = block.box;
     const rightAligned = block.align === "right";
-    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
-    if (rightAligned) {
-      grad.addColorStop(0, "rgba(4, 10, 18, 0.00)");
-      grad.addColorStop(0.30, "rgba(4, 10, 18, 0.18)");
-      grad.addColorStop(1, "rgba(4, 10, 18, 0.62)");
-    } else {
-      grad.addColorStop(0, "rgba(4, 10, 18, 0.62)");
-      grad.addColorStop(0.70, "rgba(4, 10, 18, 0.18)");
-      grad.addColorStop(1, "rgba(4, 10, 18, 0.00)");
-    }
+    const anchorX = rightAligned ? x + w : x;
+    const direction = rightAligned ? -1 : 1;
 
+    // 面で囲わず、短い識別線だけを添えてキャラクターカードらしさを維持する。
     ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = grad;
-    ctx.fillRect(x, y, w, h);
+    ctx.globalAlpha = alpha * 0.46;
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.moveTo(anchorX, y);
+    ctx.lineTo(anchorX + direction * 148, y);
+    ctx.moveTo(anchorX, y);
+    ctx.lineTo(anchorX, y + 12);
+    ctx.stroke();
 
-    const lineGrad = ctx.createLinearGradient(x, 0, x + w, 0);
-    if (rightAligned) {
-      lineGrad.addColorStop(0, "rgba(255,255,255,0)");
-      lineGrad.addColorStop(0.45, accentColor);
-      lineGrad.addColorStop(1, accentColor);
-    } else {
-      lineGrad.addColorStop(0, accentColor);
-      lineGrad.addColorStop(0.55, accentColor);
-      lineGrad.addColorStop(1, "rgba(255,255,255,0)");
-    }
-    ctx.globalAlpha = alpha * 0.42;
-    ctx.fillStyle = lineGrad;
-    ctx.fillRect(x, y, w, 1.5);
+    ctx.globalAlpha = alpha * 0.20;
+    ctx.beginPath();
+    ctx.moveTo(anchorX + direction * 164, y);
+    ctx.lineTo(anchorX + direction * 238, y);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -2859,9 +2850,25 @@
     ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
     ctx.fillText("ACCESS", access.x, access.y);
 
-    ctx.font = "700 22px Segoe UI, sans-serif";
+    ctx.font = "700 19px Consolas, SFMono-Regular, monospace";
     ctx.fillStyle = "rgba(236, 246, 255, 0.95)";
-    ctx.fillText(profileState.idCode || "DI1-GENERATING", access.codeX, access.y + 36);
+    const idText = profileState.idCode || "DI1-GENERATING";
+    const idGroups = idText.split("-");
+    const idLines = [];
+    let currentLine = "";
+    for (const group of idGroups) {
+      const candidate = currentLine ? `${currentLine}-${group}` : group;
+      if (ctx.measureText(candidate).width > (access.codeWidth || 392) && currentLine) {
+        idLines.push(currentLine);
+        currentLine = group;
+      } else {
+        currentLine = candidate;
+      }
+    }
+    if (currentLine) idLines.push(currentLine);
+    idLines.slice(0, 2).forEach((line, index) => {
+      ctx.fillText(line, access.codeX, access.y + 34 + index * 27);
+    });
 
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
