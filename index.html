@@ -1935,16 +1935,16 @@
 
   const PRESENTATION = {
     // 12秒構成
-    // 0.00-0.80  黒背景
-    // 0.80-2.00  エンブレム単独
-    // 2.00-3.60  SSフェードイン
+    // 0.00-0.80  黒背景＋情報UI
+    // 0.80-2.00  エンブレム単独＋情報UI
+    // 2.00-3.60  SSフェードイン＋情報UI
     // 3.20-3.80  エンブレム退場
-    // 3.80-8.60  SS＋UI待機
+    // 3.80-8.60  SS＋情報UI待機
     // 8.60-10.20 エンブレム再出現
-    // 9.40-11.20 SSフェードアウト
-    // 11.20-12.00 黒背景＋エンブレム余韻
+    // 9.40-11.20 SSフェードアウト＋情報UI
+    // 11.20-12.00 黒背景＋エンブレム余韻＋情報UI
     ss: { inStart: 2000, inEnd: 3600, outStart: 9400, outEnd: 11200 },
-    ui: { inStart: 2700, inEnd: 3800, outStart: 9000, outEnd: 10400 },
+    ui: { inStart: 0, inEnd: 1, outStart: LOOP_MS + 1, outEnd: LOOP_MS + 2 },
     intro: {
       // 各レイヤーの出現・退場を長めに取り、エンブレム全体が滑らかに呼吸するように表示
       frameBack: { inStart: 800, inEnd: 1550, outStart: 3000, outEnd: 4100 },
@@ -2206,7 +2206,7 @@
   function getPresentationState(ms) {
     return {
       ssAlpha: phaseEnvelope(ms, PRESENTATION.ss),
-      uiAlpha: phaseEnvelope(ms, PRESENTATION.ui),
+      uiAlpha: 1,
       frameBack: combinedPhase(ms, PRESENTATION.intro.frameBack, PRESENTATION.outro.frameBack),
       ringOuter: combinedPhase(ms, PRESENTATION.intro.ringOuter, PRESENTATION.outro.ringOuter),
       ringMiddle: combinedPhase(ms, PRESENTATION.intro.ringMiddle, PRESENTATION.outro.ringMiddle),
@@ -3007,7 +3007,7 @@
 
     drawJobMark(pos.x, pos.y, BASE_LAYER_ALPHA.jobMark * presentation.jobMark, presentation.jobMark, cfg.accent, glowBoost);
 
-    // SS reveal 完了後の鑑賞時間でUIを見せる
+    // この企画では情報UIを常時表示し、SSとエンブレムのみをタイムライン制御する
     drawOverlayTextBlock(presentation.uiAlpha);
   }
 
