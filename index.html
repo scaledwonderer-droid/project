@@ -767,10 +767,6 @@
 <button class="secondary" id="resetSsBtn" type="button">SS位置をリセット</button>
 </div><div class="checkrow">
 <label class="check">
-<input checked="" id="showGuides" type="checkbox"/>
-<span>情報UIガイド表示</span>
-</label>
-<label class="check">
 <input checked="" id="showOverlayText" type="checkbox"/>
 <span>仮UIテキスト表示</span>
 </label>
@@ -961,7 +957,6 @@
   const ssScaleValue = document.getElementById("ssScaleValue");
   const flipSsBtn = document.getElementById("flipSsBtn");
   const resetSsBtn = document.getElementById("resetSsBtn");
-  const showGuides = document.getElementById("showGuides");
   const showOverlayText = document.getElementById("showOverlayText");
   const showJobMark = document.getElementById("showJobMark");
   const playPauseBtn = document.getElementById("playPauseBtn");
@@ -2730,35 +2725,6 @@
     ctx.restore();
   }
 
-  function drawGuides(position) {
-    if (!showGuides.checked) return;
-
-    const layout = getLayout();
-    ctx.save();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgba(160, 220, 255, 0.22)";
-    ctx.setLineDash([8, 8]);
-
-    [layout.identity.box, layout.origin.box, layout.analysis.box, layout.access.box].forEach(([x, y, w, h]) => {
-      ctx.strokeRect(x, y, w, h);
-    });
-
-    ctx.beginPath();
-    ctx.moveTo(960, 0);
-    ctx.lineTo(960, 1080);
-    ctx.stroke();
-
-    ctx.setLineDash([4, 6]);
-    ctx.beginPath();
-    ctx.arc(position.x, position.y, 452, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(position.x, position.y, 178, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-  }
-
   function drawUiBackdrop(block, accentColor, alpha = 1) {
     if (!block?.box || alpha <= 0) return;
     const [x, y, w] = block.box;
@@ -3041,9 +3007,6 @@
 
     const item = assets.images;
     const glowCanvas = getTintedGlowCanvas(currentGenre, cfg.accent);
-
-    // ガイドはプレビュー用なので常時表示可能
-    drawGuides(pos);
 
     // --- Emblem intro / outro only ---
     drawLayer(
