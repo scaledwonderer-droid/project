@@ -460,6 +460,41 @@
     padding: 9px 12px;
   }
 
+  .export-panel {
+    display: grid;
+    gap: 9px;
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid rgba(103, 211, 255, 0.18);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.025);
+  }
+
+  .export-progress {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.07);
+  }
+
+  .export-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(103,211,255,.55), rgba(160,235,255,.95));
+    transition: width .08s linear;
+  }
+
+  .export-status {
+    color: var(--sub);
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: .48;
+  }
+
   .smallnote {
     margin-top: 12px;
     color: var(--sub);
@@ -746,6 +781,10 @@
 </div><div class="btns">
 <button id="playPauseBtn">一時停止</button>
 <button class="secondary" id="restartBtn">12秒ループを先頭から再生</button>
+</div><div class="export-panel">
+<button id="exportVideoBtn" type="button">12秒動画を書き出す（WebM）</button>
+<div class="export-progress" aria-hidden="true"><div class="export-progress-bar" id="exportProgressBar"></div></div>
+<div class="export-status" id="exportStatus">1920×1080 / 30fps / 12秒 / 音声なし</div>
 </div><div class="smallnote">
 <strong>この試作で確認できること</strong><br/>
             ・レイヤー順<br/>
@@ -927,6 +966,9 @@
   const showJobMark = document.getElementById("showJobMark");
   const playPauseBtn = document.getElementById("playPauseBtn");
   const restartBtn = document.getElementById("restartBtn");
+  const exportVideoBtn = document.getElementById("exportVideoBtn");
+  const exportProgressBar = document.getElementById("exportProgressBar");
+  const exportStatus = document.getElementById("exportStatus");
   const statusText = document.getElementById("statusText");
   const accentDot = document.getElementById("accentDot");
   const accentLabel = document.getElementById("accentLabel");
@@ -1990,6 +2032,7 @@
   let rafId = null;
   let loadRequestId = 0;
   let lastRenderError = null;
+  let exportState = null;
 
   function populateSelect(select, values, selectedValue) {
     select.innerHTML = "";
@@ -2902,6 +2945,9 @@
   }
 
   function getLoopMs() {
+    if (exportState) {
+      return Math.min(LOOP_MS, Math.max(0, performance.now() - exportState.startedAt));
+    }
     if (isPlaying) {
       return (performance.now() - startTime) % LOOP_MS;
     }
@@ -3139,6 +3185,121 @@
     }
   }
 
+  function getSupportedWebmMimeType() {
+    if (typeof MediaRecorder === "undefined") return "";
+    const candidates = [
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm"
+    ];
+    return candidates.find(type => !MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(type)) || "";
+  }
+
+  function makeExportFilename() {
+    const safeName = (profileState.characterName || "ff14-id")
+      .trim()
+      .replace(/[\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, "-")
+      .slice(0, 48) || "ff14-id";
+    return `${safeName}-${currentJobId}-12s.webm`;
+  }
+
+  async function exportWebmVideo() {
+    if (exportState) return;
+    if (!canvas.captureStream || typeof MediaRecorder === "undefined") {
+      exportStatus.textContent = "このブラウザはCanvas動画書き出しに対応していません。ChromeまたはEdgeでお試しください。";
+      return;
+    }
+
+    const mimeType = getSupportedWebmMimeType();
+    if (!mimeType) {
+      exportStatus.textContent = "利用可能なWebMエンコーダーが見つかりませんでした。";
+      return;
+    }
+
+    const previousPlayback = { isPlaying, startTime, pausedElapsed };
+    const chunks = [];
+    let stream;
+    let recorder;
+
+    try {
+      stream = canvas.captureStream(30);
+      recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 14_000_000
+      });
+
+      recorder.addEventListener("dataavailable", event => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      });
+
+      const stopped = new Promise((resolve, reject) => {
+        recorder.addEventListener("stop", resolve, { once: true });
+        recorder.addEventListener("error", event => reject(event.error || new Error("動画の録画に失敗しました")), { once: true });
+      });
+
+      exportState = { startedAt: performance.now(), previousPlayback };
+      exportVideoBtn.disabled = true;
+      playPauseBtn.disabled = true;
+      restartBtn.disabled = true;
+      exportProgressBar.style.width = "0%";
+      exportStatus.textContent = `書き出し中… 0.0 / ${(LOOP_MS / 1000).toFixed(1)}秒`;
+
+      recorder.start(250);
+
+      await new Promise(resolve => {
+        const update = () => {
+          if (!exportState) return resolve();
+          const elapsed = performance.now() - exportState.startedAt;
+          const progress = Math.min(1, elapsed / LOOP_MS);
+          exportProgressBar.style.width = `${(progress * 100).toFixed(1)}%`;
+          exportStatus.textContent = `書き出し中… ${(Math.min(elapsed, LOOP_MS) / 1000).toFixed(1)} / ${(LOOP_MS / 1000).toFixed(1)}秒`;
+          if (elapsed >= LOOP_MS) return resolve();
+          requestAnimationFrame(update);
+        };
+        requestAnimationFrame(update);
+      });
+
+      // 最終フレームを確実に取り込ませてから停止する
+      drawScene(LOOP_MS);
+      await new Promise(resolve => setTimeout(resolve, 120));
+      recorder.stop();
+      await stopped;
+
+      const blob = new Blob(chunks, { type: mimeType });
+      if (!blob.size) throw new Error("生成された動画データが空でした");
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = makeExportFilename();
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+
+      const sizeMb = blob.size / 1024 / 1024;
+      exportProgressBar.style.width = "100%";
+      exportStatus.textContent = `書き出し完了｜${sizeMb.toFixed(1)} MB｜${mimeType.replace("video/webm;codecs=", "")}`;
+    } catch (error) {
+      console.error("動画書き出しエラー:", error);
+      exportStatus.textContent = `書き出しエラー：${error.message || error}`;
+      exportProgressBar.style.width = "0%";
+      if (recorder && recorder.state !== "inactive") recorder.stop();
+    } finally {
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      const saved = exportState?.previousPlayback || previousPlayback;
+      exportState = null;
+      isPlaying = saved.isPlaying;
+      startTime = saved.startTime;
+      pausedElapsed = saved.pausedElapsed;
+      playPauseBtn.textContent = isPlaying ? "一時停止" : "再生";
+      exportVideoBtn.disabled = false;
+      playPauseBtn.disabled = false;
+      restartBtn.disabled = false;
+    }
+  }
+
   function loadImageFromFile(file, cb) {
     if (!file) {
       cb(null);
@@ -3279,6 +3440,7 @@
 
   playPauseBtn.addEventListener("click", togglePlayPause);
   restartBtn.addEventListener("click", restartLoop);
+  exportVideoBtn.addEventListener("click", exportWebmVideo);
 
   async function init() {
     initializeFormalInputs();
@@ -3286,6 +3448,10 @@
     glowBoostValue.textContent = Number(glowBoostSlider.value).toFixed(2);
     ssScaleValue.textContent = `${Math.round(ssTransform.scale * 100)}%`;
     updateQrState();
+    if (!canvas.captureStream || typeof MediaRecorder === "undefined" || !getSupportedWebmMimeType()) {
+      exportVideoBtn.disabled = true;
+      exportStatus.textContent = "動画書き出し非対応ブラウザです。ChromeまたはEdgeをご利用ください。";
+    }
     await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
     renderLoop();
   }
