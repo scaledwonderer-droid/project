@@ -723,8 +723,8 @@
 <div class="wrap">
 <div class="topbar">
 <div class="titlebox">
-<h1>FF14 横型IDビジュアル動画ジェネレータ — 正式入力UI</h1>
-<p>左側にプレビュー操作、下部にキャラクター情報入力をまとめた構成です。</p>
+<h1>FF14 横型IDビジュアル動画ジェネレータ</h1>
+<p>SSとキャラクターデータから、12秒の横型IDビジュアル動画を生成します。</p>
 </div>
 </div>
 <div class="layout">
@@ -740,7 +740,7 @@
 </select>
 </div>
 <div class="field">
-<label for="sizeSelect">基準サイズ</label>
+<label for="sizeSelect">エンブレムサイズ</label>
 <select id="sizeSelect">
 <option value="960">小型 960px</option>
 <option selected="" value="1040">標準 1040px</option>
@@ -778,14 +778,8 @@
 <div class="export-progress" aria-hidden="true"><div class="export-progress-bar" id="exportProgressBar"></div></div>
 <div class="export-status" id="exportStatus">1920×1080 / 30fps / 12秒 / 音声なし / MP4優先・WebM自動代替</div>
 </div><div class="smallnote">
-<strong>この試作で確認できること</strong><br/>
-            ・レイヤー順<br/>
-            ・標準サイズと配置位置<br/>
-            ・ジャンル別の回転方向と速度差<br/>
-            ・起動 → 待機 → 終了の12秒ループ<br/>
-            ・glow-mask の着色発光<br/>
-            ・SSのドラッグ移動／ホイール拡大縮小／左右反転<br/><br/>
-<span class="danger">※ preview.png は使っていません。</span>
+<strong>操作</strong><br/>
+SSはプレビュー上でドラッグして位置を調整できます。マウスホイールまたは拡大率スライダーで大きさを変更してください。
 </div></div>
 </div>
 <div class="panel previewpanel">
@@ -794,7 +788,7 @@
 </div>
 <div class="meta">
 <div class="info" id="statusText">
-            読み込み待機中…
+            プレビュー準備中…
           </div>
 <div class="pill">
 <span class="accentdot" id="accentDot"></span>
@@ -3099,10 +3093,10 @@
       updateAccentUI();
       restartLoop();
       setStatus(`
-        ジャンル: <strong>${GENRES[currentGenre].label}</strong> /
-        プリセット: <strong>${positionSelect.options[positionSelect.selectedIndex].text}</strong> /
-        サイズ: <strong>${sizeSelect.value}px</strong><br>
-        表示順: frame-back → ring-outer → ${GENRES[currentGenre].hasMiddle ? "ring-middle → " : ""}ring-inner → parts → markings → effects → glow-mask → job mark / mark: ${currentJobId}-${JOB_MARK_THEME}.png / 演出: black hold → emblem → SS reveal → long hold → emblem → black hold
+        <strong>${GENRES[currentGenre].label}</strong> / 
+        ${positionSelect.options[positionSelect.selectedIndex].text} / 
+        エンブレム ${sizeSelect.value}px<br>
+        プレビュー準備完了。SSと入力内容は動画へそのまま反映されます。
       `);
     } catch (err) {
       if (requestId !== loadRequestId || requestedGenre !== currentGenre) return;
