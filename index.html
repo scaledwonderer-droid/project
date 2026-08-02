@@ -2769,21 +2769,21 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
     // Identity
     ctx.textAlign = identity.align;
-    ctx.font = "700 22px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(172, 220, 242, 0.96)";
+    ctx.font = "700 26px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(188, 231, 249, 0.98)";
     ctx.fillText("IDENTITY", identity.x, identity.y);
 
-    ctx.font = "750 48px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(242, 249, 255, 0.98)";
-    ctx.fillText((profileState.characterName || "CHARACTER NAME").toUpperCase(), identity.x, identity.y + 36);
+    ctx.font = "800 56px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(248, 252, 255, 0.995)";
+    ctx.fillText((profileState.characterName || "CHARACTER NAME").toUpperCase(), identity.x, identity.y + 42);
 
-    ctx.font = "650 20px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(172, 220, 242, 0.94)";
-    ctx.fillText("MAIN CLASS", identity.x, identity.y + 112);
+    ctx.font = "650 22px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(184, 228, 246, 0.95)";
+    ctx.fillText("MAIN CLASS", identity.x, identity.y + 130);
 
-    ctx.font = "750 32px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(242, 249, 255, 0.97)";
-    ctx.fillText(JOBS[currentJobId]?.nameEn || "MAIN JOB", identity.x, identity.y + 146);
+    ctx.font = "780 36px Segoe UI, sans-serif";
+    ctx.fillStyle = "rgba(246, 251, 255, 0.985)";
+    ctx.fillText(JOBS[currentJobId]?.nameEn || "MAIN JOB", identity.x, identity.y + 168);
 
     // Origin
     ctx.textAlign = origin.align;
