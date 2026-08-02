@@ -2940,7 +2940,11 @@
 
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     ctx.save();
-    ctx.fillStyle = "#000";
+    // SSが表示されていない区間の台紙。真っ黒ではなく、黒寄りのチャコールグレーでカードの面を残す。
+    const basePlate = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+    basePlate.addColorStop(0, "#20242a");
+    basePlate.addColorStop(1, "#14171b");
+    ctx.fillStyle = basePlate;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     ctx.restore();
 
