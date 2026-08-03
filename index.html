@@ -4,7 +4,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FF14 Horizontal ID Visual Generator</title>
+<title>FF14 横型IDビジュアル動画ジェネレータ</title>
+<meta name="description" content="FF14のスクリーンショットとキャラクターデータから、12秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
 <style>
   :root {
     --bg: #0a0d14;
@@ -703,6 +704,32 @@
   .qr-status.error { color: #ffb4ba; }
   .qr-status.ready { color: #98e7c7; }
 
+  .public-info {
+    margin-top: 18px;
+    padding: 18px 20px;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    background: rgba(10,13,17,0.76);
+    color: rgba(236,241,248,0.82);
+    font-size: 13px;
+    line-height: 1.75;
+  }
+
+  .public-info h2 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+  }
+
+  .public-info p { margin: 4px 0; }
+  .public-info a { color: #9dc9ff; }
+  .copyright-line {
+    margin-top: 10px !important;
+    color: #ffffff;
+    font-weight: 700;
+  }
+
   @media (max-width: 1100px) {
     .layout {
       grid-template-columns: 1fr;
@@ -807,7 +834,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 </div>
 </div><div class="panel details-panel"><h2>CHARACTER DATA</h2><div class="details-grid"><div class="section-title">IDENTITY / ORIGIN</div><div class="field">
 <label for="characterNameInput">キャラクター名</label>
-<input autocomplete="off" id="characterNameInput" maxlength="32" placeholder="Character Name" type="text" value="Luca Traveler"/>
+<input autocomplete="off" id="characterNameInput" maxlength="32" placeholder="Character Name" type="text" value=""/>
 </div><div class="field">
 <label for="dataCenterSelect">DC / World</label>
 <select id="dataCenterSelect"></select>
@@ -818,9 +845,9 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 <label for="mainJobSelect">メインジョブ</label>
 <select id="mainJobSelect">
 <optgroup label="TANK">
-<option value="paladin">ナイト / PALADIN</option>
+<option selected="" value="paladin">ナイト / PALADIN</option>
 <option value="warrior">戦士 / WARRIOR</option>
-<option selected="" value="dark-knight">暗黒騎士 / DARK KNIGHT</option>
+<option value="dark-knight">暗黒騎士 / DARK KNIGHT</option>
 <option value="gunbreaker">ガンブレイカー / GUNBREAKER</option>
 </optgroup>
 <optgroup label="HEALER">
@@ -913,6 +940,13 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 </div>
 <div class="hint">SS画像・キャラクター名・SS位置・拡大率・左右反転・QRのURL本文は復元されません。</div>
 </div></div></div>
+<section class="public-info" aria-label="利用案内と権利表記">
+  <h2>ABOUT / NOTICE</h2>
+  <p>このページは、FINAL FANTASY XIV向けの非公式・非営利ファン企画です。スクリーンショットと入力データはブラウザ内で処理され、外部サーバーへアップロードしません。</p>
+  <p>基本操作：SSを選択し、キャラクター情報とプレイスタイルを設定してから、プレビューを確認して動画を書き出してください。動画出力にはChromeまたはEdgeを推奨します。</p>
+  <p>本ツールは株式会社スクウェア・エニックスの公式サービスではなく、同社による承認・提携を受けたものではありません。</p>
+  <p class="copyright-line">© SQUARE ENIX</p>
+</section>
 </div>
 <script>
 (() => {
@@ -995,11 +1029,11 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   };
 
   const profileState = {
-    characterName: "Luca Traveler",
-    dataCenter: "Mana",
-    world: "Ixion",
-    race: "Au Ra",
-    clan: "Raen",
+    characterName: "",
+    dataCenter: "Elemental",
+    world: "Aegis",
+    race: "Hyur",
+    clan: "Midlander",
     subJobs: new Set(),
     playStyles: new Set(),
     analysis: { valid: false, score: 0, level: 0, label: "UNRATED", gaugePercent: 50, details: [] },
