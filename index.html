@@ -484,6 +484,14 @@
     transition: width .08s linear;
   }
 
+
+  .export-result-label {
+    color: #dff4ff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+  }
+
   .export-status {
     color: var(--sub);
     font-size: 11px;
@@ -729,7 +737,7 @@
 </div>
 <div class="layout">
 <div class="panel controls">
-<h2>PREVIEW CONTROL</h2>
+<h2>VISUAL SETUP</h2>
 <div class="grid"><div class="section-title">VISUAL / PREVIEW</div><div class="row2">
 <div class="field">
 <label for="positionSelect">レイアウトプリセット</label>
@@ -776,7 +784,8 @@
 </div><div class="export-panel">
 <button id="exportVideoBtn" type="button">12秒動画を書き出す（MP4優先）</button>
 <div class="export-progress" aria-hidden="true"><div class="export-progress-bar" id="exportProgressBar"></div></div>
-<div class="export-status" id="exportStatus">1920×1080 / 30fps / 12秒 / 音声なし / MP4優先・WebM自動代替</div>
+<div class="export-result-label">書き出し状況</div>
+<div class="export-status" id="exportStatus">1920×1080 / 30fps / 12秒 / 音声なし。完了後、保存形式とファイルサイズをここへ表示します。</div>
 </div><div class="smallnote">
 <strong>操作</strong><br/>
 SSはプレビュー上でドラッグして位置を調整できます。マウスホイールまたは拡大率スライダーで大きさを変更してください。
@@ -860,7 +869,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 <label>サブジョブ（複数選択）</label>
 <div class="subjob-box" id="subJobBox"></div>
 <div class="selection-summary" id="subJobSummary">未選択</div>
-<div class="hint">メインジョブと同じジョブは選択できません。選択内容は後続の復元用IDコードへ保存する予定です。</div>
+<div class="hint">メインジョブと同じジョブは選択できません。選択内容は復元用IDコードへ保存されます。</div>
 </div><div class="section-title">PLAY STYLE</div><div class="field">
 <label>プレイスタイル（3〜15項目）</label>
 <div class="playstyle-panel" id="playStyleBox"></div>
@@ -869,7 +878,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 <button class="secondary compact-button" id="clearPlayStylesBtn" type="button">全解除</button>
 </div>
 <div class="selection-summary" id="playStyleSummary">未選択</div>
-<div class="hint">最低3項目、推奨5〜10項目、最大15項目。同系統の項目は選択順に減衰して計算します。</div>
+<div class="hint">最低3項目、推奨5〜10項目、最大15項目。同系統では特徴の強い項目から順に減衰補正を適用します。</div>
 <div class="analysis-result-panel" id="analysisResultPanel">
   <div class="analysis-result-head">
     <div class="analysis-result-class" id="analysisResultClass">未判定</div>
@@ -2682,7 +2691,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       return;
     }
 
-    // 仮プレースホルダー
+    // ジョブマーク読込失敗時のフォールバック表示
     ctx.save();
     ctx.translate(markX, markY);
     ctx.globalAlpha = alpha;
@@ -3253,7 +3262,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       const sizeMb = blob.size / 1024 / 1024;
       exportProgressBar.style.width = "100%";
       const fallbackNote = format.extension === "mp4" ? "" : "｜MP4非対応のためWebMで保存";
-      exportStatus.textContent = `書き出し完了｜${sizeMb.toFixed(1)} MB｜${format.label}${fallbackNote}`;
+      exportStatus.textContent = `✓ 書き出し完了｜形式: ${format.label}｜サイズ: ${sizeMb.toFixed(1)} MB${fallbackNote}`;
     } catch (error) {
       console.error("動画書き出しエラー:", error);
       exportStatus.textContent = `書き出しエラー：${error.message || error}`;
