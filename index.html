@@ -2514,15 +2514,14 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     }
 
     const isIntro = distortionState.mode === "intro";
-    const sliceOffsetBase = isIntro ? (4 + distortion * 22) : (16 + distortion * 120);
-    const burstChance = isIntro ? (0.03 + distortion * 0.08) : (0.16 + distortion * 0.28);
-    const burstScale = isIntro ? 1.15 : 1.9;
-    const normalScale = isIntro ? 0.55 : 0.8;
-    const tearCount = isIntro ? (distortion > 0.42 ? 1 : 0) : (2 + Math.floor(distortion * 5));
-    const tearOffsetBase = isIntro ? (12 + distortion * 42) : (80 + distortion * 240);
-    const noiseAlpha = ((isIntro ? 0.008 : 0.05) + distortion * (isIntro ? 0.035 : 0.22)) * alpha;
+    const sliceOffsetBase = isIntro ? (8 + distortion * 52) : (16 + distortion * 120);
+    const burstChance = isIntro ? (0.08 + distortion * 0.14) : (0.16 + distortion * 0.28);
+    const burstScale = isIntro ? 1.35 : 1.9;
+    const normalScale = isIntro ? 0.72 : 0.8;
+    const tearCount = isIntro ? (1 + Math.floor(distortion * 2)) : (2 + Math.floor(distortion * 5));
+    const tearOffsetBase = isIntro ? (26 + distortion * 110) : (80 + distortion * 240);
+    const noiseAlpha = ((isIntro ? 0.02 : 0.05) + distortion * (isIntro ? 0.10 : 0.22)) * alpha;
     const flashAlpha = isIntro ? 0 : distortion * 0.10;
-    const introOverlayAlpha = isIntro ? (0.18 + distortion * 0.28) : 1;
 
     ssEffectCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     drawSsToContext(ssEffectCtx, img, alpha);
@@ -2530,18 +2529,13 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.save();
     ctx.imageSmoothingEnabled = true;
 
-    if (isIntro) {
-      drawCoverImage(img, alpha);
-      ctx.globalAlpha = introOverlayAlpha;
-    }
-
     let y = 0;
     let sliceIndex = 0;
     while (y < CANVAS_H) {
       const seed = ms * 0.071 + sliceIndex * 17.123;
       const sliceH = Math.min(
         CANVAS_H - y,
-        Math.max(isIntro ? 18 : 8, Math.round((isIntro ? 24 : 12) + hashNoise(seed + 0.7) * (isIntro ? 18 : 30)))
+        Math.max(isIntro ? 12 : 8, Math.round((isIntro ? 18 : 12) + hashNoise(seed + 0.7) * (isIntro ? 26 : 30)))
       );
       const burst = hashNoise(seed + 2.3) < burstChance ? burstScale : normalScale;
       const offset = signedNoise(seed + 1.4) * sliceOffsetBase * burst;
@@ -2553,22 +2547,22 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     for (let i = 0; i < tearCount; i += 1) {
       const seed = ms * 0.017 + i * 33.7;
       const bandY = Math.floor(hashNoise(seed + 1.1) * (CANVAS_H - 80));
-      const bandH = Math.round((isIntro ? 10 : 14) + hashNoise(seed + 2.7) * ((isIntro ? 12 : 28) + distortion * (isIntro ? 12 : 44)));
+      const bandH = Math.round((isIntro ? 12 : 14) + hashNoise(seed + 2.7) * ((isIntro ? 20 : 28) + distortion * (isIntro ? 26 : 44)));
       const offset = signedNoise(seed + 3.9) * tearOffsetBase;
       ctx.drawImage(ssEffectCanvas, 0, bandY, CANVAS_W, bandH, offset, bandY, CANVAS_W, bandH);
 
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = isIntro ? (0.018 + distortion * 0.035) : (0.08 + distortion * 0.16);
-      ctx.fillStyle = isIntro ? "rgba(210,235,255,1)" : (hashNoise(seed + 5.2) > 0.5 ? "rgba(110,210,255,1)" : "rgba(255,120,120,1)");
-      ctx.fillRect(0, bandY, CANVAS_W, Math.max(1, Math.round(bandH * 0.08)));
+      ctx.globalAlpha = isIntro ? (0.04 + distortion * 0.08) : (0.08 + distortion * 0.16);
+      ctx.fillStyle = hashNoise(seed + 5.2) > 0.5 ? "rgba(110,210,255,1)" : "rgba(255,120,120,1)";
+      ctx.fillRect(0, bandY, CANVAS_W, Math.max(2, Math.round(bandH * 0.10)));
       ctx.restore();
     }
 
     if (noiseAlpha > 0) {
       ctx.save();
       ctx.globalAlpha = noiseAlpha;
-      const block = isIntro ? 6 : 4;
+      const block = isIntro ? 5 : 4;
       for (let ny = 0; ny < CANVAS_H; ny += block) {
         for (let nx = 0; nx < CANVAS_W; nx += block) {
           const v = hashNoise(nx * 0.053 + ny * 0.067 + ms * 0.18);
@@ -2583,14 +2577,14 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     if (isIntro) {
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = distortion * 0.022;
-      const scanY = (ms * 1.35) % (CANVAS_H + 180) - 90;
-      const scanGrad = ctx.createLinearGradient(0, scanY - 28, 0, scanY + 28);
+      ctx.globalAlpha = distortion * 0.045;
+      const scanY = (ms * 1.8) % (CANVAS_H + 180) - 90;
+      const scanGrad = ctx.createLinearGradient(0, scanY - 40, 0, scanY + 40);
       scanGrad.addColorStop(0, "rgba(255,255,255,0)");
-      scanGrad.addColorStop(0.5, "rgba(220,238,255,1)");
+      scanGrad.addColorStop(0.5, "rgba(210,235,255,1)");
       scanGrad.addColorStop(1, "rgba(255,255,255,0)");
       ctx.fillStyle = scanGrad;
-      ctx.fillRect(0, scanY - 28, CANVAS_W, 56);
+      ctx.fillRect(0, scanY - 40, CANVAS_W, 80);
       ctx.restore();
     }
 
