@@ -2476,33 +2476,52 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     return hashNoise(v) * 2 - 1;
   }
 
-  function getTransitionDistortionLevel(ms) {
-    if (!imageDistortionToggle.checked) return 0;
+  function getTransitionDistortionState(ms) {
+    if (!imageDistortionToggle.checked) {
+      return { level: 0, mode: "none", progress: 0 };
+    }
 
     const ssTiming = PRESENTATION.ss;
-    const introWindowEnd = Math.min(ssTiming.inStart + 340, ssTiming.inEnd);
-    let level = 0;
-
+    const introWindowEnd = Math.min(ssTiming.inStart + 360, ssTiming.inEnd);
     if (ms >= ssTiming.inStart && ms <= introWindowEnd) {
       const p = clamp01((ms - ssTiming.inStart) / Math.max(1, introWindowEnd - ssTiming.inStart));
-      level = Math.max(level, 1 - easeOutCubic(p));
+      return {
+        level: clamp01((1 - easeOutCubic(p)) * 0.78),
+        mode: "intro",
+        progress: p
+      };
     }
 
     const outroWindowStart = Math.max(ssTiming.outStart, ssTiming.outEnd - 340);
     if (ms >= outroWindowStart && ms <= ssTiming.outEnd) {
       const p = clamp01((ms - outroWindowStart) / Math.max(1, ssTiming.outEnd - outroWindowStart));
-      level = Math.max(level, easeInCubic(p));
+      return {
+        level: clamp01(easeInCubic(p)),
+        mode: "outro",
+        progress: p
+      };
     }
 
-    return clamp01(level);
+    return { level: 0, mode: "none", progress: 0 };
   }
 
   function drawCoverImageWithDistortion(img, alpha, ms) {
-    const distortion = getTransitionDistortionLevel(ms);
+    const distortionState = getTransitionDistortionState(ms);
+    const distortion = distortionState.level;
     if (distortion <= 0.001) {
       drawCoverImage(img, alpha);
       return;
     }
+
+    const isIntro = distortionState.mode === "intro";
+    const sliceOffsetBase = isIntro ? (8 + distortion * 52) : (16 + distortion * 120);
+    const burstChance = isIntro ? (0.08 + distortion * 0.14) : (0.16 + distortion * 0.28);
+    const burstScale = isIntro ? 1.35 : 1.9;
+    const normalScale = isIntro ? 0.72 : 0.8;
+    const tearCount = isIntro ? (1 + Math.floor(distortion * 2)) : (2 + Math.floor(distortion * 5));
+    const tearOffsetBase = isIntro ? (26 + distortion * 110) : (80 + distortion * 240);
+    const noiseAlpha = ((isIntro ? 0.02 : 0.05) + distortion * (isIntro ? 0.10 : 0.22)) * alpha;
+    const flashAlpha = isIntro ? 0 : distortion * 0.10;
 
     ssEffectCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     drawSsToContext(ssEffectCtx, img, alpha);
@@ -2516,36 +2535,34 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       const seed = ms * 0.071 + sliceIndex * 17.123;
       const sliceH = Math.min(
         CANVAS_H - y,
-        Math.max(8, Math.round(12 + hashNoise(seed + 0.7) * 30))
+        Math.max(isIntro ? 12 : 8, Math.round((isIntro ? 18 : 12) + hashNoise(seed + 0.7) * (isIntro ? 26 : 30)))
       );
-      const burst = hashNoise(seed + 2.3) < (0.16 + distortion * 0.28) ? 1.9 : 0.8;
-      const offset = signedNoise(seed + 1.4) * (16 + distortion * 120) * burst;
+      const burst = hashNoise(seed + 2.3) < burstChance ? burstScale : normalScale;
+      const offset = signedNoise(seed + 1.4) * sliceOffsetBase * burst;
       ctx.drawImage(ssEffectCanvas, 0, y, CANVAS_W, sliceH, offset, y, CANVAS_W, sliceH);
       y += sliceH;
       sliceIndex += 1;
     }
 
-    const tearCount = 2 + Math.floor(distortion * 5);
     for (let i = 0; i < tearCount; i += 1) {
       const seed = ms * 0.017 + i * 33.7;
       const bandY = Math.floor(hashNoise(seed + 1.1) * (CANVAS_H - 80));
-      const bandH = Math.round(14 + hashNoise(seed + 2.7) * (28 + distortion * 44));
-      const offset = signedNoise(seed + 3.9) * (80 + distortion * 240);
+      const bandH = Math.round((isIntro ? 12 : 14) + hashNoise(seed + 2.7) * ((isIntro ? 20 : 28) + distortion * (isIntro ? 26 : 44)));
+      const offset = signedNoise(seed + 3.9) * tearOffsetBase;
       ctx.drawImage(ssEffectCanvas, 0, bandY, CANVAS_W, bandH, offset, bandY, CANVAS_W, bandH);
 
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = 0.08 + distortion * 0.16;
+      ctx.globalAlpha = isIntro ? (0.04 + distortion * 0.08) : (0.08 + distortion * 0.16);
       ctx.fillStyle = hashNoise(seed + 5.2) > 0.5 ? "rgba(110,210,255,1)" : "rgba(255,120,120,1)";
-      ctx.fillRect(0, bandY, CANVAS_W, Math.max(2, Math.round(bandH * 0.12)));
+      ctx.fillRect(0, bandY, CANVAS_W, Math.max(2, Math.round(bandH * 0.10)));
       ctx.restore();
     }
 
-    const noiseAlpha = (0.05 + distortion * 0.22) * alpha;
     if (noiseAlpha > 0) {
       ctx.save();
       ctx.globalAlpha = noiseAlpha;
-      const block = 4;
+      const block = isIntro ? 5 : 4;
       for (let ny = 0; ny < CANVAS_H; ny += block) {
         for (let nx = 0; nx < CANVAS_W; nx += block) {
           const v = hashNoise(nx * 0.053 + ny * 0.067 + ms * 0.18);
@@ -2557,7 +2574,20 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       ctx.restore();
     }
 
-    const flashAlpha = distortion * 0.10;
+    if (isIntro) {
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = distortion * 0.045;
+      const scanY = (ms * 1.8) % (CANVAS_H + 180) - 90;
+      const scanGrad = ctx.createLinearGradient(0, scanY - 40, 0, scanY + 40);
+      scanGrad.addColorStop(0, "rgba(255,255,255,0)");
+      scanGrad.addColorStop(0.5, "rgba(210,235,255,1)");
+      scanGrad.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = scanGrad;
+      ctx.fillRect(0, scanY - 40, CANVAS_W, 80);
+      ctx.restore();
+    }
+
     if (flashAlpha > 0.001) {
       ctx.save();
       ctx.globalCompositeOperation = "screen";
