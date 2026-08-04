@@ -765,7 +765,7 @@
 <div class="layout">
 <div class="panel controls">
 <h2>VISUAL SETUP</h2>
-<div class="grid"><div class="section-title">VISUAL / PREVIEW</div><div class="row3">
+<div class="grid"><div class="section-title">VISUAL / PREVIEW</div><div class="row2">
 <div class="field">
 <label for="positionSelect">レイアウトプリセット</label>
 <select id="positionSelect">
@@ -780,13 +780,6 @@
 <option value="960">小型 960px</option>
 <option selected="" value="1040">標準 1040px</option>
 <option value="1120">大型 1120px</option>
-</select>
-</div>
-<div class="field">
-<label for="themeSelect">台紙テーマ</label>
-<select id="themeSelect">
-<option selected="" value="dark">DARK｜チャコール</option>
-<option value="light">LIGHT｜ホワイト</option>
 </select>
 </div>
 </div><div class="row2">
@@ -807,6 +800,12 @@
 </div><div class="ss-tools">
 <button class="secondary" id="flipSsBtn" type="button">SSを左右反転</button>
 <button class="secondary" id="resetSsBtn" type="button">SS位置をリセット</button>
+</div><div class="field">
+<label for="themeSelect">台紙テーマ</label>
+<select id="themeSelect">
+<option selected="" value="dark">DARK｜チャコール</option>
+<option value="light">LIGHT｜オフホワイト</option>
+</select>
 </div><div class="checkrow">
 <label class="check">
 <input checked="" id="showJobMark" type="checkbox"/>
@@ -2364,24 +2363,24 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     if (theme === "light") {
       return {
         name: "light",
-        plateTop: "#f4f6f9",
-        plateBottom: "#dee4eb",
-        ssTint: "rgba(250, 252, 255, 0.07)",
-        sectionLineAlpha: 0.58,
-        sectionLineSubAlpha: 0.28,
-        shadowColor: "rgba(255, 255, 255, 0.78)",
-        shadowBlur: 7,
+        plateTop: "#eef1f4",
+        plateBottom: "#d9dee5",
+        ssTint: "rgba(248, 250, 253, 0.06)",
+        sectionLineAlpha: 0.72,
+        sectionLineSubAlpha: 0.34,
+        shadowColor: "rgba(255, 255, 255, 0.88)",
+        shadowBlur: 8,
         shadowOffsetY: 1,
-        identityLabel: "rgba(56, 96, 118, 0.98)",
-        identityName: "rgba(22, 34, 42, 0.985)",
-        subLabel: "rgba(62, 103, 126, 0.95)",
-        subValue: "rgba(25, 39, 50, 0.96)",
-        gaugeStroke: "rgba(44, 76, 96, 0.48)",
-        gaugeHighlight: "rgba(255,255,255,0.96)",
-        qrStroke: "rgba(48, 79, 99, 0.46)",
-        qrText: "rgba(42, 73, 92, 0.82)",
-        credit: "rgba(40, 64, 80, 0.70)",
-        creditShadowColor: "rgba(255, 255, 255, 0.72)",
+        identityLabel: "rgba(50, 84, 104, 0.99)",
+        identityName: "rgba(12, 21, 29, 0.995)",
+        subLabel: "rgba(56, 92, 113, 0.98)",
+        subValue: "rgba(16, 28, 37, 0.985)",
+        gaugeStroke: "rgba(32, 58, 74, 0.56)",
+        gaugeHighlight: "rgba(255,255,255,0.98)",
+        qrStroke: "rgba(36, 63, 79, 0.54)",
+        qrText: "rgba(28, 51, 66, 0.90)",
+        credit: "rgba(28, 48, 61, 0.78)",
+        creditShadowColor: "rgba(255, 255, 255, 0.82)",
         accentLine: accent
       };
     }
