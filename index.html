@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FF14 横型IDビジュアル動画ジェネレータ</title>
+<title>FFXIV CyberCardGenerator</title>
 <meta name="description" content="FF14のスクリーンショットとキャラクターデータから、12秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
 <style>
   :root {
@@ -758,14 +758,14 @@
 <div class="wrap">
 <div class="topbar">
 <div class="titlebox">
-<h1>FF14 横型IDビジュアル動画ジェネレータ</h1>
+<h1>FFXIV CyberCardGenerator</h1>
 <p>SSとキャラクターデータから、12秒の横型IDビジュアル動画を生成します。</p>
 </div>
 </div>
 <div class="layout">
 <div class="panel controls">
 <h2>VISUAL SETUP</h2>
-<div class="grid"><div class="section-title">VISUAL / PREVIEW</div><div class="row2">
+<div class="grid"><div class="section-title">VISUAL / PREVIEW</div><div class="row3">
 <div class="field">
 <label for="positionSelect">レイアウトプリセット</label>
 <select id="positionSelect">
@@ -780,6 +780,13 @@
 <option value="960">小型 960px</option>
 <option selected="" value="1040">標準 1040px</option>
 <option value="1120">大型 1120px</option>
+</select>
+</div>
+<div class="field">
+<label for="themeSelect">台紙テーマ</label>
+<select id="themeSelect">
+<option selected="" value="dark">DARK｜チャコール</option>
+<option value="light">LIGHT｜ホワイト</option>
 </select>
 </div>
 </div><div class="row2">
@@ -946,9 +953,10 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 </div></div></div>
 <section class="public-info" aria-label="利用案内と権利表記">
   <h2>ABOUT / NOTICE</h2>
-  <p>このページは、FINAL FANTASY XIV向けの非公式・非営利ファン企画です。スクリーンショットと入力データはブラウザ内で処理され、外部サーバーへアップロードしません。</p>
-  <p>基本操作：SSを選択し、キャラクター情報とプレイスタイルを設定してから、プレビューを確認して動画を書き出してください。動画出力にはChromeまたはEdgeを推奨します。</p>
+  <p>FINAL FANTASY XIV向けの非公式・非営利ファン企画です。スクリーンショットと入力データはブラウザ内で処理され、外部サーバーへ送信されません。</p>
+  <p>SSを選択し、キャラクター情報とプレイスタイルを設定して、プレビュー確認後に12秒動画を書き出してください。動画出力にはChromeまたはEdgeを推奨します。</p>
   <p>本ツールは株式会社スクウェア・エニックスの公式サービスではなく、同社による承認・提携を受けたものではありません。</p>
+  <p>Created by 鱗の旅人</p>
   <p class="copyright-line">© SQUARE ENIX</p>
 </section>
 </div>
@@ -987,6 +995,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   const restoreIdStatus = document.getElementById("restoreIdStatus");
   const positionSelect = document.getElementById("positionSelect");
   const sizeSelect = document.getElementById("sizeSelect");
+  const themeSelect = document.getElementById("themeSelect");
   const frameOpacitySlider = document.getElementById("frameOpacity");
   const glowBoostSlider = document.getElementById("glowBoost");
   const bgInput = document.getElementById("bgInput");
@@ -1165,7 +1174,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
   const ID_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
   const ID_SPEC_VERSION = 1;
-  const ANALYSIS_SPEC_VERSION = 2;
+  const ANALYSIS_SPEC_VERSION = 3;
 
   function writeBits(parts, value, width) {
     const mask = (1n << BigInt(width)) - 1n;
@@ -1250,7 +1259,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     writeBits(parts, presetIndex, 2);
     writeBits(parts, profileState.qrEnabled ? 1 : 0, 1);
     writeBits(parts, sizeIndex, 2);
-    writeBits(parts, 0, 1); // DARK theme
+    writeBits(parts, themeSelect.value === "light" ? 1 : 0, 1); // video theme
     writeBits(parts, 0, 8); // reserved
 
     const payloadBytes = bigIntToBytes(parts.value, parts.length);
@@ -1354,7 +1363,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     if (!raceNames[raceIndex] || !RACES[raceNames[raceIndex]][clanIndex]) throw new Error("種族 / 部族情報が範囲外です。");
     if (presetIndex > 2) throw new Error("レイアウトプリセット情報が範囲外です。");
     if (sizeIndex >= sizeSelect.options.length) throw new Error("エンブレムサイズ情報が範囲外です。");
-    if (themeIndex !== 0) throw new Error("このHTMLはDARKテーマのIDのみ復元できます。");
+    if (themeIndex > 1) throw new Error("テーマ情報が範囲外です。");
 
     const subJobs = new Set();
     jobs.forEach((jobId, index) => {
@@ -1384,6 +1393,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       qrEnabled,
       sizeIndex,
       themeIndex,
+      theme: themeIndex === 1 ? "light" : "dark",
       reserved
     };
   }
@@ -1414,6 +1424,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       populateGroupedPairSelect(raceSelect, RACES, `${restored.race}|${restored.clan}`);
       positionSelect.value = restored.preset;
       sizeSelect.selectedIndex = restored.sizeIndex;
+      themeSelect.value = restored.theme || "dark";
       qrEnabledInput.checked = restored.qrEnabled;
 
       renderSubJobOptions();
@@ -1790,7 +1801,24 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       purityBonus + strengthBonus + breadthBonus + volumeBonus
     );
     const profileBonus = dominantSign * profileBonusMagnitude;
-    const correctedScore = rawScore + profileBonus;
+
+    // 戦闘ジョブの選択範囲を、COMBAT側への追加補正として評価する。
+    // メインジョブとチェック済みサブジョブを合わせて選択済みとして扱う。
+    const combatGenres = new Set(["tank", "healer", "melee", "physical-ranged", "magical-ranged"]);
+    const combatJobIds = Object.entries(JOBS)
+      .filter(([, job]) => combatGenres.has(job.genre))
+      .map(([jobId]) => jobId);
+    const selectedJobIds = new Set(profileState.subJobs);
+    selectedJobIds.add(currentJobId);
+    const selectedCombatJobCount = combatJobIds.filter(jobId => selectedJobIds.has(jobId)).length;
+    const combatHalfThreshold = Math.ceil(combatJobIds.length / 2);
+    const combatJobPenalty = selectedCombatJobCount === combatJobIds.length
+      ? -2
+      : selectedCombatJobCount >= combatHalfThreshold
+        ? -1
+        : 0;
+
+    const correctedScore = rawScore + profileBonus + combatJobPenalty;
     const score = clamp(correctedScore, -10, 10);
     const classification = classifyActivity(score);
 
@@ -1816,7 +1844,13 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       label: classification.label,
       gaugePercent: ((score + 10) / 20) * 100,
       details,
-      correction
+      correction,
+      combatJobCorrection: {
+        amount: combatJobPenalty,
+        selectedCount: selectedCombatJobCount,
+        totalCount: combatJobIds.length,
+        halfThreshold: combatHalfThreshold
+      }
     };
     return profileState.analysis;
   }
@@ -1843,10 +1877,18 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     });
     const breakdownParts = [...familyTotals.entries()]
       .map(([family, value]) => `${FAMILY_LABELS[family]} ${value.count}項目（補正率計${value.weight.toFixed(1)}）`);
+    if (result.correction || result.combatJobCorrection?.amount) {
+      breakdownParts.push(`基本 ${result.rawScore >= 0 ? "+" : ""}${result.rawScore.toFixed(2)}`);
+    }
     if (result.correction) {
       const sign = result.correction.amount >= 0 ? "+" : "";
-      breakdownParts.push(`基本 ${result.rawScore >= 0 ? "+" : ""}${result.rawScore.toFixed(2)}`);
       breakdownParts.push(`方向性補正 ${sign}${result.correction.amount.toFixed(2)}`);
+    }
+    if (result.combatJobCorrection?.amount) {
+      breakdownParts.push(
+        `戦闘ジョブ補正 ${result.combatJobCorrection.amount.toFixed(2)}` +
+        `（${result.combatJobCorrection.selectedCount}/${result.combatJobCorrection.totalCount}）`
+      );
     }
     analysisBreakdown.textContent = breakdownParts.join(" / ");
     updateRestoreIdCode();
@@ -2127,7 +2169,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
         if (input.checked) profileState.subJobs.add(jobId);
         else profileState.subJobs.delete(jobId);
         updateSubJobSummary();
-        updateRestoreIdCode();
+        updateAnalysisDisplay();
       });
       const text = document.createElement("span");
       text.textContent = `${job.nameJa} / ${job.nameEn}`;
@@ -2313,6 +2355,59 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
   function getSize() {
     return Number(sizeSelect.value || 1040);
+  }
+
+  function getVideoThemePalette() {
+    const theme = themeSelect.value === "light" ? "light" : "dark";
+    const accent = GENRES[currentGenre]?.accent || "#67d3ff";
+
+    if (theme === "light") {
+      return {
+        name: "light",
+        plateTop: "#f4f6f9",
+        plateBottom: "#dee4eb",
+        ssTint: "rgba(250, 252, 255, 0.07)",
+        sectionLineAlpha: 0.58,
+        sectionLineSubAlpha: 0.28,
+        shadowColor: "rgba(255, 255, 255, 0.78)",
+        shadowBlur: 7,
+        shadowOffsetY: 1,
+        identityLabel: "rgba(56, 96, 118, 0.98)",
+        identityName: "rgba(22, 34, 42, 0.985)",
+        subLabel: "rgba(62, 103, 126, 0.95)",
+        subValue: "rgba(25, 39, 50, 0.96)",
+        gaugeStroke: "rgba(44, 76, 96, 0.48)",
+        gaugeHighlight: "rgba(255,255,255,0.96)",
+        qrStroke: "rgba(48, 79, 99, 0.46)",
+        qrText: "rgba(42, 73, 92, 0.82)",
+        credit: "rgba(40, 64, 80, 0.70)",
+        creditShadowColor: "rgba(255, 255, 255, 0.72)",
+        accentLine: accent
+      };
+    }
+
+    return {
+      name: "dark",
+      plateTop: "#20242a",
+      plateBottom: "#14171b",
+      ssTint: "rgba(2, 6, 10, 0.18)",
+      sectionLineAlpha: 0.46,
+      sectionLineSubAlpha: 0.20,
+      shadowColor: "rgba(0, 0, 0, 0.88)",
+      shadowBlur: 8,
+      shadowOffsetY: 2,
+      identityLabel: "rgba(188, 231, 249, 0.98)",
+      identityName: "rgba(248, 252, 255, 0.995)",
+      subLabel: "rgba(155, 208, 232, 0.92)",
+      subValue: "rgba(236, 246, 255, 0.95)",
+      gaugeStroke: "rgba(210, 240, 255, 0.52)",
+      gaugeHighlight: "rgba(245, 251, 255, 0.98)",
+      qrStroke: "rgba(220, 240, 255, 0.55)",
+      qrText: "rgba(220, 240, 255, 0.82)",
+      credit: "rgba(220, 236, 245, 0.76)",
+      creditShadowColor: "rgba(0, 0, 0, 0.82)",
+      accentLine: accent
+    };
   }
 
   function setStatus(text) {
@@ -2915,18 +3010,17 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.restore();
   }
 
-  function drawUiBackdrop(block, accentColor, alpha = 1) {
+  function drawUiBackdrop(block, palette, alpha = 1) {
     if (!block?.box || alpha <= 0) return;
     const [x, y, w] = block.box;
     const rightAligned = block.align === "right";
     const anchorX = rightAligned ? x + w : x;
     const direction = rightAligned ? -1 : 1;
 
-    // 面で囲わず、短い識別線だけを添えてキャラクターカードらしさを維持する。
     ctx.save();
-    ctx.globalAlpha = alpha * 0.46;
-    ctx.strokeStyle = accentColor;
-    ctx.lineWidth = 1.25;
+    ctx.globalAlpha = alpha * palette.sectionLineAlpha;
+    ctx.strokeStyle = palette.accentLine;
+    ctx.lineWidth = palette.name === "light" ? 1.4 : 1.25;
     ctx.beginPath();
     ctx.moveTo(anchorX, y);
     ctx.lineTo(anchorX + direction * 148, y);
@@ -2934,7 +3028,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.lineTo(anchorX, y + 12);
     ctx.stroke();
 
-    ctx.globalAlpha = alpha * 0.20;
+    ctx.globalAlpha = alpha * palette.sectionLineSubAlpha;
     ctx.beginPath();
     ctx.moveTo(anchorX + direction * 164, y);
     ctx.lineTo(anchorX + direction * 238, y);
@@ -2957,50 +3051,50 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.globalAlpha = alpha;
     ctx.textBaseline = "top";
 
-    const accent = GENRES[currentGenre]?.accent || "#67d3ff";
-    drawUiBackdrop(identity, accent, alpha);
-    drawUiBackdrop(origin, accent, alpha);
-    drawUiBackdrop(analysis, accent, alpha);
-    drawUiBackdrop(access, accent, alpha);
+    const palette = getVideoThemePalette();
+    drawUiBackdrop(identity, palette, alpha);
+    drawUiBackdrop(origin, palette, alpha);
+    drawUiBackdrop(analysis, palette, alpha);
+    drawUiBackdrop(access, palette, alpha);
 
-    ctx.shadowColor = "rgba(0, 0, 0, 0.88)";
-    ctx.shadowBlur = 8;
+    ctx.shadowColor = palette.shadowColor;
+    ctx.shadowBlur = palette.shadowBlur;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetY = palette.shadowOffsetY;
 
     // Identity
     ctx.textAlign = identity.align;
     ctx.font = "700 26px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(188, 231, 249, 0.98)";
+    ctx.fillStyle = palette.identityLabel;
     ctx.fillText("IDENTITY", identity.x, identity.y);
 
     ctx.font = "800 56px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(248, 252, 255, 0.995)";
+    ctx.fillStyle = palette.identityName;
     ctx.fillText((profileState.characterName || "CHARACTER NAME").toUpperCase(), identity.x, identity.y + 42);
 
     ctx.font = "650 22px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(184, 228, 246, 0.95)";
+    ctx.fillStyle = palette.subLabel;
     ctx.fillText("MAIN CLASS", identity.x, identity.y + 130);
 
     ctx.font = "780 36px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(246, 251, 255, 0.985)";
+    ctx.fillStyle = palette.subValue;
     ctx.fillText(JOBS[currentJobId]?.nameEn || "MAIN JOB", identity.x, identity.y + 168);
 
     // Origin
     ctx.textAlign = origin.align;
     ctx.font = "600 18px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillStyle = palette.subLabel;
     ctx.fillText("ORIGIN", origin.x, origin.y);
 
     ctx.font = "700 22px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(236, 246, 255, 0.94)";
+    ctx.fillStyle = palette.subValue;
     ctx.fillText(`${profileState.dataCenter.toUpperCase()} / ${profileState.world.toUpperCase()}`, origin.x, origin.y + 38);
     ctx.fillText(`${profileState.race.toUpperCase()} / ${profileState.clan.toUpperCase()}`, origin.x, origin.y + 74);
 
     // Analysis
     ctx.textAlign = analysis.align;
     ctx.font = "600 18px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillStyle = palette.subLabel;
     ctx.fillText("ANALYSIS", analysis.x, analysis.y);
     ctx.fillText("ACTIVITY CLASS", analysis.x, analysis.y + 38);
 
@@ -3009,21 +3103,21 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     const labelText = analysisData.valid ? analysisData.label : "UNRATED";
 
     ctx.font = "700 56px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(236, 246, 255, 0.96)";
+    ctx.fillStyle = palette.subValue;
     ctx.fillText(levelText, analysis.x, analysis.y + 72);
 
     ctx.font = "700 30px Segoe UI, sans-serif";
     ctx.fillText(labelText, analysis.x, analysis.y + 144);
 
     ctx.font = "600 18px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillStyle = palette.subLabel;
     ctx.textAlign = "left";
     ctx.fillText("COMBAT", analysis.combatX, analysis.y + 208);
     ctx.textAlign = "right";
     ctx.fillText("LIFE", analysis.lifeX, analysis.y + 208);
 
     const gaugeY = analysis.y + 216;
-    ctx.strokeStyle = "rgba(210, 240, 255, 0.52)";
+    ctx.strokeStyle = palette.gaugeStroke;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(analysis.gaugeX, gaugeY + 6);
@@ -3039,14 +3133,14 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.fillRect(markerX - 3, gaugeY - 4, 6, 20);
     ctx.shadowColor = "rgba(190, 235, 255, 0.9)";
     ctx.shadowBlur = 10;
-    ctx.fillStyle = "rgba(245, 251, 255, 0.98)";
+    ctx.fillStyle = palette.gaugeHighlight;
     ctx.fillRect(markerX - 1, gaugeY - 4, 2, 20);
     ctx.shadowBlur = 0;
 
     // Access
     ctx.textAlign = access.align;
     ctx.font = "600 18px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(155, 208, 232, 0.92)";
+    ctx.fillStyle = palette.subLabel;
     ctx.fillText("ACCESS", access.x, access.y);
 
     ctx.font = "700 19px Consolas, SFMono-Regular, monospace";
@@ -3074,20 +3168,20 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     if (profileState.qrEnabled && profileState.qrMatrix) {
       drawQrCode(profileState.qrMatrix, access.qrX, access.qrY, 120, 120);
     } else {
-      ctx.strokeStyle = "rgba(220, 240, 255, 0.55)";
+      ctx.strokeStyle = palette.qrStroke;
       ctx.strokeRect(access.qrX, access.qrY, 120, 120);
       ctx.font = "600 16px Segoe UI, sans-serif";
-      ctx.fillStyle = "rgba(220, 240, 255, 0.82)";
+      ctx.fillStyle = palette.qrText;
       ctx.textAlign = "center";
       ctx.fillText(profileState.qrEnabled ? "NO URL" : "QR OFF", access.qrX + 60, access.qrY + 51);
     }
 
     // Credit
-    ctx.shadowColor = "rgba(0, 0, 0, 0.82)";
+    ctx.shadowColor = palette.creditShadowColor;
     ctx.shadowBlur = 6;
     ctx.shadowOffsetY = 2;
     ctx.font = "500 16px Segoe UI, sans-serif";
-    ctx.fillStyle = "rgba(220, 236, 245, 0.76)";
+    ctx.fillStyle = palette.credit;
     ctx.textAlign = credit.align;
     ctx.fillText("Created by 鱗の旅人", credit.x, credit.y);
     ctx.fillText("© SQUARE ENIX", credit.x, credit.y + 24);
@@ -3134,11 +3228,12 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     const presentation = getPresentationState(ms);
 
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    const videoTheme = getVideoThemePalette();
+
     ctx.save();
-    // SSが表示されていない区間の台紙。真っ黒ではなく、黒寄りのチャコールグレーでカードの面を残す。
     const basePlate = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-    basePlate.addColorStop(0, "#20242a");
-    basePlate.addColorStop(1, "#14171b");
+    basePlate.addColorStop(0, videoTheme.plateTop);
+    basePlate.addColorStop(1, videoTheme.plateBottom);
     ctx.fillStyle = basePlate;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     ctx.restore();
@@ -3148,7 +3243,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       if (presentation.ssAlpha > 0) {
         ctx.save();
         ctx.globalAlpha = presentation.ssAlpha;
-        ctx.fillStyle = "rgba(2, 6, 10, 0.18)";
+        ctx.fillStyle = videoTheme.ssTint;
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
         ctx.restore();
       }
@@ -3518,7 +3613,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     currentGenre = JOBS[currentJobId].genre;
     profileState.subJobs.delete(currentJobId);
     renderSubJobOptions();
-    updateRestoreIdCode();
+    updateAnalysisDisplay();
     updateAccentUI();
     await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
     restartLoop();
@@ -3531,6 +3626,11 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   sizeSelect.addEventListener("change", () => {
     updateRestoreIdCode();
     ensureCurrentGenreLoaded();
+  });
+
+  themeSelect.addEventListener("change", () => {
+    updateRestoreIdCode();
+    restartLoop();
   });
 
   frameOpacitySlider.addEventListener("input", () => {
