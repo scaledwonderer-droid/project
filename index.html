@@ -1721,7 +1721,12 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     const centerY = y + height / 2;
     const size = Math.min(width, height);
     const bodyAngle = -Math.PI / 4; // 黄緑パネルを4時半方向へ向ける。
-    const ringSize = size * 0.88;   // 外周リングの半径を明確に縮め、内周を中央本体へ少し重ねる。
+
+    // 本体の縁より内側にリングが収まって見えるよう、
+    // 中央本体よりかなり小さめに回転リングを描画する。
+    const bodySize = size;
+    const eyesSize = size;
+    const ringSize = size * 0.76;
 
     // 12秒で約1回転。中央本体は傾けたまま固定し、外周リングだけを回転させる。
     const ringAngle = (ms / LOOP_MS) * Math.PI * 2;
@@ -1742,7 +1747,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.globalAlpha = 0.98;
     ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
     ctx.shadowBlur = 5;
-    ctx.drawImage(qrOffAccessoryImages.centerBody, -size / 2, -size / 2, size, size);
+    ctx.drawImage(qrOffAccessoryImages.centerBody, -bodySize / 2, -bodySize / 2, bodySize, bodySize);
     ctx.restore();
 
     ctx.save();
@@ -1751,11 +1756,11 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.globalAlpha = eyeAlpha;
     ctx.shadowColor = "rgba(52, 246, 255, 0.92)";
     ctx.shadowBlur = 5 + glowPulse * 5;
-    ctx.drawImage(qrOffAccessoryImages.eyesGlow, -size / 2, -size / 2, size, size);
+    ctx.drawImage(qrOffAccessoryImages.eyesGlow, -eyesSize / 2, -eyesSize / 2, eyesSize, eyesSize);
     ctx.restore();
 
-    // 回転リングは必ず通常合成で最前面へ描画する。
-    // 直前のエンブレム描画などで screen 合成が残っていても影響を受けないよう固定する。
+    // 回転リングは通常合成で最前面へ描画する。
+    // ただしサイズは本体外周より内側に収まる値へ固定する。
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     ctx.translate(centerX, centerY);
@@ -3298,8 +3303,12 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     } else if (!profileState.qrEnabled) {
       const accessoryDrawn = drawQrOffAccessory(access.qrX, access.qrY, 120, 120, ms);
       if (!accessoryDrawn) {
-        // QR OFF時は文字や代替枠を表示しない。
-        // 素材の読込失敗はコンソールへ記録し、カード上には何も描画しない。
+        ctx.strokeStyle = palette.qrStroke;
+        ctx.strokeRect(access.qrX, access.qrY, 120, 120);
+        ctx.font = "600 16px Segoe UI, sans-serif";
+        ctx.fillStyle = palette.qrText;
+        ctx.textAlign = "center";
+        ctx.fillText("QR OFF", access.qrX + 60, access.qrY + 51);
       }
     } else {
       ctx.strokeStyle = palette.qrStroke;
