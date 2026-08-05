@@ -1755,7 +1755,8 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     // 白テーマで画像矩形が見えないよう、暗化は円形クリップ内だけに限定する。
     ctx.save();
     ctx.beginPath();
-    ctx.arc(0, 0, bodySize * 0.37, 0, Math.PI * 2);
+    // 暗化領域は回転リングの内径より明確に小さくし、リング下へかからないようにする。
+    ctx.arc(0, 0, bodySize * 0.29, 0, Math.PI * 2);
     ctx.clip();
     ctx.globalCompositeOperation = "source-atop";
     ctx.fillStyle = "rgba(24, 36, 50, 0.34)";
