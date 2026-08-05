@@ -951,10 +951,9 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 <div class="hint">SS画像・キャラクター名・SS位置・拡大率・左右反転・QRのURL本文は復元されません。</div>
 </div></div></div>
 <section class="public-info" aria-label="利用案内と権利表記">
-  <h2>ABOUT / NOTICE</h2>
-  <p>FINAL FANTASY XIV向けの非公式・非営利ファン企画です。スクリーンショットと入力データはブラウザ内で処理され、外部サーバーへ送信されません。</p>
+  <h2>ABOUT</h2>
+  <p>スクリーンショットと入力データは、すべてブラウザ内で処理されます。外部サーバーへのアップロードは行いません。</p>
   <p>SSを選択し、キャラクター情報とプレイスタイルを設定して、プレビュー確認後に12秒動画を書き出してください。動画出力にはChromeまたはEdgeを推奨します。</p>
-  <p>本ツールは株式会社スクウェア・エニックスの公式サービスではなく、同社による承認・提携を受けたものではありません。</p>
   <p>Created by 鱗の旅人</p>
   <p class="copyright-line">© SQUARE ENIX</p>
 </section>
@@ -962,6 +961,11 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 <script>
 (() => {
   const ASSET_ROOT = "./ff14-job-emblem-frames";
+  const QR_OFF_ASSET_PATHS = {
+    outerRing: "./qr-off-outer-ring.png",
+    centerBody: "./qr-off-center-body.png",
+    eyesGlow: "./qr-off-eyes-glow.png"
+  };
   const CANVAS_W = 1920;
   const CANVAS_H = 1080;
   const LOOP_MS = 12000;
@@ -1710,6 +1714,51 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.restore();
   }
 
+  function drawQrOffAccessory(x, y, width, height, ms) {
+    if (!qrOffAccessoryImages.loaded) return false;
+
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const size = Math.min(width, height);
+
+    // 12秒で約1.25回転。中央本体は固定し、外周リングだけを回転させる。
+    const ringAngle = (ms / LOOP_MS) * Math.PI * 2 * 1.25;
+
+    // 約3.2秒周期で、全体のシアン発光を静かに脈動させる。
+    const glowPulse = 0.5 + 0.5 * Math.sin((ms / 3200) * Math.PI * 2 - Math.PI / 2);
+    const glowAlpha = 0.78 + glowPulse * 0.18;
+    const glowBlur = 4 + glowPulse * 7;
+
+    // 目は強く消灯させず、わずかな明暗差だけを付ける。
+    const eyePulse = 0.5 + 0.5 * Math.sin((ms / 1850) * Math.PI * 2 + 0.7);
+    const eyeAlpha = 0.72 + eyePulse * 0.28;
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(ringAngle);
+    ctx.globalAlpha = glowAlpha;
+    ctx.shadowColor = "rgba(52, 246, 255, 0.82)";
+    ctx.shadowBlur = glowBlur;
+    ctx.drawImage(qrOffAccessoryImages.outerRing, -size / 2, -size / 2, size, size);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.98;
+    ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
+    ctx.shadowBlur = 5;
+    ctx.drawImage(qrOffAccessoryImages.centerBody, x, y, size, size);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = eyeAlpha;
+    ctx.shadowColor = "rgba(52, 246, 255, 0.92)";
+    ctx.shadowBlur = 5 + glowPulse * 5;
+    ctx.drawImage(qrOffAccessoryImages.eyesGlow, x, y, size, size);
+    ctx.restore();
+
+    return true;
+  }
+
   function calculatePlayStyleAnalysis() {
     const selected = [...profileState.playStyles];
     if (selected.length < PLAY_STYLE_MIN) {
@@ -2090,6 +2139,13 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   let currentGenre = JOBS[currentJobId].genre;
   let bgImage = null;
   let jobMarkImage = null;
+  const qrOffAccessoryImages = {
+    outerRing: null,
+    centerBody: null,
+    eyesGlow: null,
+    loaded: false,
+    failed: false
+  };
   let jobMarkLoadRequestId = 0;
   const jobMarkGlowCache = new WeakMap();
   const lightThemeDarkSilhouetteCache = new WeakMap();
@@ -2429,6 +2485,25 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       img.onerror = () => reject(new Error("画像読込失敗: " + url));
       img.src = url;
     });
+  }
+
+  async function loadQrOffAccessoryAssets() {
+    try {
+      const [outerRing, centerBody, eyesGlow] = await Promise.all([
+        createImage(QR_OFF_ASSET_PATHS.outerRing),
+        createImage(QR_OFF_ASSET_PATHS.centerBody),
+        createImage(QR_OFF_ASSET_PATHS.eyesGlow)
+      ]);
+      qrOffAccessoryImages.outerRing = outerRing;
+      qrOffAccessoryImages.centerBody = centerBody;
+      qrOffAccessoryImages.eyesGlow = eyesGlow;
+      qrOffAccessoryImages.loaded = true;
+      qrOffAccessoryImages.failed = false;
+    } catch (error) {
+      qrOffAccessoryImages.loaded = false;
+      qrOffAccessoryImages.failed = true;
+      console.warn("QR OFF用アクセサリー画像を読み込めませんでした。", error);
+    }
   }
 
   async function loadSelectedJobMark() {
@@ -3210,13 +3285,23 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.shadowOffsetY = 0;
     if (profileState.qrEnabled && profileState.qrMatrix) {
       drawQrCode(profileState.qrMatrix, access.qrX, access.qrY, 120, 120);
+    } else if (!profileState.qrEnabled) {
+      const accessoryDrawn = drawQrOffAccessory(access.qrX, access.qrY, 120, 120, ms);
+      if (!accessoryDrawn) {
+        ctx.strokeStyle = palette.qrStroke;
+        ctx.strokeRect(access.qrX, access.qrY, 120, 120);
+        ctx.font = "600 16px Segoe UI, sans-serif";
+        ctx.fillStyle = palette.qrText;
+        ctx.textAlign = "center";
+        ctx.fillText("QR OFF", access.qrX + 60, access.qrY + 51);
+      }
     } else {
       ctx.strokeStyle = palette.qrStroke;
       ctx.strokeRect(access.qrX, access.qrY, 120, 120);
       ctx.font = "600 16px Segoe UI, sans-serif";
       ctx.fillStyle = palette.qrText;
       ctx.textAlign = "center";
-      ctx.fillText(profileState.qrEnabled ? "NO URL" : "QR OFF", access.qrX + 60, access.qrY + 51);
+      ctx.fillText("NO URL", access.qrX + 60, access.qrY + 51);
     }
 
     // Credit
@@ -3788,7 +3873,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       exportVideoBtn.disabled = true;
       exportStatus.textContent = "MP4 / WebM動画書き出し非対応ブラウザです。ChromeまたはEdgeをご利用ください。";
     }
-    await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark()]);
+    await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark(), loadQrOffAccessoryAssets()]);
     renderLoop();
   }
 
