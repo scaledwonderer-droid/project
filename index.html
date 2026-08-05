@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FFXIV CyberCardGenerator</title>
+<title>FFXIV CyberCardGenerator Ver.13</title>
 <meta name="description" content="FF14のスクリーンショットとキャラクターデータから、12秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
 <style>
   :root {
@@ -758,7 +758,7 @@
 <div class="wrap">
 <div class="topbar">
 <div class="titlebox">
-<h1>FFXIV CyberCardGenerator</h1>
+<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.13</span></h1>
 <p>SSとキャラクターデータから、12秒の横型IDビジュアル動画を生成します。</p>
 </div>
 </div>
@@ -819,10 +819,10 @@
 <button id="playPauseBtn">一時停止</button>
 <button class="secondary" id="restartBtn">12秒ループを先頭から再生</button>
 </div><div class="export-panel">
-<button id="exportVideoBtn" type="button">12秒動画を書き出す（MP4優先）</button>
+<button id="exportVideoBtn" type="button">12秒動画を書き出す（MP4 / 固定30fps）</button>
 <div class="export-progress" aria-hidden="true"><div class="export-progress-bar" id="exportProgressBar"></div></div>
 <div class="export-result-label">書き出し状況</div>
-<div class="export-status" id="exportStatus">1920×1080 / 30fps / 12秒 / 音声なし。完了後、保存形式とファイルサイズをここへ表示します。</div>
+<div class="export-status" id="exportStatus">1920×1080 / 固定30fps / 360フレーム / 12秒 / 音声なし。</div>
 </div><div class="smallnote">
 <strong>操作</strong><br/>
 SSはプレビュー上でドラッグして位置を調整できます。マウスホイールまたは拡大率スライダーで大きさを変更してください。
@@ -958,6 +958,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   <p class="copyright-line">© SQUARE ENIX</p>
 </section>
 </div>
+<script src="https://unpkg.com/mp4-muxer@5.2.1/build/mp4-muxer.js"></script>
 <script>
 (() => {
   const ASSET_ROOT = "./ff14-job-emblem-frames";
@@ -970,8 +971,8 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   const CANVAS_H = 1080;
   const LOOP_MS = 12000;
   const EXPORT_FPS = 30;
-  const EXPORT_FRAME_MS = 1000 / EXPORT_FPS;
-  const EXPORT_FRAME_COUNT = Math.round((LOOP_MS / 1000) * EXPORT_FPS);
+  const EXPORT_FRAME_COUNT = 360;
+  const EXPORT_FRAME_DURATION_US = Math.round(1_000_000 / EXPORT_FPS);
 
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d");
@@ -3375,13 +3376,8 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   }
 
   function getLoopMs() {
-    if (exportState) {
-      if (Number.isFinite(exportState.timelineMs)) {
-        return Math.min(LOOP_MS, Math.max(0, exportState.timelineMs));
-      }
-      if (Number.isFinite(exportState.startedAt)) {
-        return Math.min(LOOP_MS, Math.max(0, performance.now() - exportState.startedAt));
-      }
+    if (exportState && Number.isFinite(exportState.timelineMs)) {
+      return Math.min(LOOP_MS, Math.max(0, exportState.timelineMs));
     }
     if (isPlaying) {
       return (performance.now() - startTime) % LOOP_MS;
@@ -3641,40 +3637,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     }
   }
 
-  function getExportMimeCandidates() {
-    if (typeof MediaRecorder === "undefined") return [];
-    const candidates = [
-      { mimeType: "video/mp4;codecs=avc1.42E01E", extension: "mp4", label: "MP4 / H.264" },
-      { mimeType: "video/mp4;codecs=avc1", extension: "mp4", label: "MP4 / H.264" },
-      { mimeType: "video/mp4", extension: "mp4", label: "MP4" },
-      { mimeType: "video/webm;codecs=vp9", extension: "webm", label: "WebM / VP9" },
-      { mimeType: "video/webm;codecs=vp8", extension: "webm", label: "WebM / VP8" },
-      { mimeType: "video/webm", extension: "webm", label: "WebM" }
-    ];
-    return candidates.filter(({ mimeType }) =>
-      !MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(mimeType)
-    );
-  }
-
-  function createSupportedRecorder(stream) {
-    const errors = [];
-    for (const format of getExportMimeCandidates()) {
-      try {
-        const recorder = new MediaRecorder(stream, {
-          mimeType: format.mimeType,
-          videoBitsPerSecond: 14_000_000
-        });
-        return { recorder, format };
-      } catch (error) {
-        errors.push(`${format.mimeType}: ${error.message || error}`);
-      }
-    }
-    throw new Error(errors.length
-      ? `利用可能な動画エンコーダーを初期化できませんでした（${errors.join(" / ")}）`
-      : "利用可能なMP4 / WebMエンコーダーが見つかりませんでした");
-  }
-
-  function makeExportFilename(extension = "webm") {
+  function makeExportFilename(extension = "mp4") {
     const safeName = (profileState.characterName || "ff14-id")
       .trim()
       .replace(/[\/:*?"<>|]+/g, "-")
@@ -3683,43 +3646,64 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     return `${safeName}-${currentJobId}-12s.${extension}`;
   }
 
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
   }
 
-  async function waitForNextFrameTime(targetTime) {
-    while (true) {
-      const remaining = targetTime - performance.now();
-      if (remaining <= 1) return;
-      if (remaining > 8) {
-        await sleep(Math.max(0, remaining - 4));
-      } else {
-        await new Promise(resolve => requestAnimationFrame(() => resolve()));
-      }
+  function yieldToBrowser() {
+    return new Promise(resolve => setTimeout(resolve, 0));
+  }
+
+  async function chooseAvcEncoderConfig() {
+    if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") {
+      throw new Error("WebCodecsに対応していません。ChromeまたはEdgeの最新版をご利用ください。");
     }
-  }
 
-  function updateExportProgress(frameIndex, format) {
-    const safeIndex = Math.max(0, Math.min(EXPORT_FRAME_COUNT, frameIndex));
-    const progress = safeIndex / EXPORT_FRAME_COUNT;
-    const logicalMs = Math.min(LOOP_MS, safeIndex * EXPORT_FRAME_MS);
-    exportProgressBar.style.width = `${(progress * 100).toFixed(1)}%`;
-    exportStatus.textContent = `${format.label}で書き出し中… ${safeIndex} / ${EXPORT_FRAME_COUNT} frames｜${(logicalMs / 1000).toFixed(1)} / ${(LOOP_MS / 1000).toFixed(1)}秒`;
+    const candidates = [
+      "avc1.640028",
+      "avc1.4d0028",
+      "avc1.420028",
+      "avc1.42001f"
+    ];
+
+    for (const codec of candidates) {
+      const config = {
+        codec,
+        width: CANVAS_W,
+        height: CANVAS_H,
+        bitrate: 14_000_000,
+        framerate: EXPORT_FPS,
+        hardwareAcceleration: "prefer-hardware",
+        latencyMode: "quality",
+        avc: { format: "avc" }
+      };
+      try {
+        const result = await VideoEncoder.isConfigSupported(config);
+        if (result.supported) return result.config;
+      } catch (_) {}
+    }
+
+    throw new Error("この環境では1920×1080のH.264エンコードを利用できません。");
   }
 
   async function exportVideo() {
     if (exportState) return;
-    if (!canvas.captureStream || typeof MediaRecorder === "undefined") {
-      exportStatus.textContent = "このブラウザはCanvas動画書き出しに対応していません。ChromeまたはEdgeでお試しください。";
+
+    if (!window.Mp4Muxer?.Muxer || !window.Mp4Muxer?.ArrayBufferTarget) {
+      exportStatus.textContent = "MP4書き出し部品を読み込めませんでした。通信状態を確認して再読み込みしてください。";
       return;
     }
 
     const previousPlayback = { isPlaying, startTime, pausedElapsed };
     const previousLoopMs = getLoopMs();
-    const chunks = [];
-    let stream;
-    let recorder;
-    let stopped;
+    let encoder = null;
 
     try {
       if (rafId != null) {
@@ -3727,87 +3711,87 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
         rafId = null;
       }
 
+      isPlaying = false;
+      pausedElapsed = previousLoopMs;
       exportVideoBtn.disabled = true;
       playPauseBtn.disabled = true;
       restartBtn.disabled = true;
       exportProgressBar.style.width = "0%";
-      isPlaying = false;
-      pausedElapsed = previousLoopMs;
       playPauseBtn.textContent = "再生";
 
-      stream = canvas.captureStream(0);
-      const recorderSetup = createSupportedRecorder(stream);
-      recorder = recorderSetup.recorder;
-      const format = recorderSetup.format;
-      const videoTrack = stream.getVideoTracks()[0];
-      const canRequestFrame = Boolean(videoTrack && typeof videoTrack.requestFrame === "function");
-      if (!canRequestFrame) {
-        throw new Error("このブラウザは安定書き出しに必要な requestFrame に対応していません。ChromeまたはEdgeの最新版をご利用ください。");
-      }
-
-      recorder.addEventListener("dataavailable", event => {
-        if (event.data && event.data.size > 0) chunks.push(event.data);
+      const encoderConfig = await chooseAvcEncoderConfig();
+      const target = new Mp4Muxer.ArrayBufferTarget();
+      const muxer = new Mp4Muxer.Muxer({
+        target,
+        video: {
+          codec: "avc",
+          width: CANVAS_W,
+          height: CANVAS_H,
+          frameRate: EXPORT_FPS
+        },
+        fastStart: "in-memory",
+        firstTimestampBehavior: "strict"
       });
 
-      stopped = new Promise((resolve, reject) => {
-        recorder.addEventListener("stop", resolve, { once: true });
-        recorder.addEventListener("error", event => reject(event.error || new Error("動画の録画に失敗しました")), { once: true });
+      let encoderError = null;
+      encoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: error => { encoderError = error; }
       });
+      encoder.configure(encoderConfig);
 
       exportState = {
         previousPlayback,
         timelineMs: 0,
-        startedAt: performance.now(),
         frameIndex: 0,
         frameCount: EXPORT_FRAME_COUNT,
-        mode: "frame-stepped"
+        mode: "webcodecs-fixed-frames"
       };
 
-      updateExportProgress(0, format);
-      recorder.start();
-      await sleep(80);
-
-      const exportStartAt = performance.now();
       for (let frameIndex = 0; frameIndex < EXPORT_FRAME_COUNT; frameIndex++) {
-        const frameMs = Math.min(LOOP_MS - EXPORT_FRAME_MS, frameIndex * EXPORT_FRAME_MS);
+        if (encoderError) throw encoderError;
+
+        const frameMs = frameIndex * (1000 / EXPORT_FPS);
+        const timestampUs = frameIndex * EXPORT_FRAME_DURATION_US;
         exportState.timelineMs = frameMs;
         exportState.frameIndex = frameIndex + 1;
+
         drawScene(frameMs);
-        videoTrack.requestFrame();
-        updateExportProgress(frameIndex + 1, format);
-        await waitForNextFrameTime(exportStartAt + ((frameIndex + 1) * EXPORT_FRAME_MS));
+
+        const frame = new VideoFrame(canvas, {
+          timestamp: timestampUs,
+          duration: EXPORT_FRAME_DURATION_US
+        });
+        encoder.encode(frame, { keyFrame: frameIndex % 60 === 0 });
+        frame.close();
+
+        const progress = (frameIndex + 1) / EXPORT_FRAME_COUNT;
+        exportProgressBar.style.width = `${(progress * 100).toFixed(1)}%`;
+        exportStatus.textContent = `MP4 / H.264を書き出し中… ${frameIndex + 1} / ${EXPORT_FRAME_COUNT} frames｜${(frameMs / 1000).toFixed(1)} / 12.0秒`;
+
+        if (encoder.encodeQueueSize > 8) await encoder.flush();
+        if (frameIndex % 4 === 3) await yieldToBrowser();
       }
 
-      await sleep(120);
-      recorder.stop();
-      await stopped;
+      await encoder.flush();
+      if (encoderError) throw encoderError;
+      encoder.close();
+      encoder = null;
 
-      const blob = new Blob(chunks, { type: format.mimeType });
-      if (!blob.size) throw new Error("生成された動画データが空でした");
+      muxer.finalize();
+      const blob = new Blob([target.buffer], { type: "video/mp4" });
+      if (!blob.size) throw new Error("生成されたMP4データが空でした。");
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = makeExportFilename(format.extension);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-
+      downloadBlob(blob, makeExportFilename("mp4"));
       const sizeMb = blob.size / 1024 / 1024;
       exportProgressBar.style.width = "100%";
-      const fallbackNote = format.extension === "mp4" ? "" : "｜MP4非対応のためWebMで保存";
-      exportStatus.textContent = `✓ 書き出し完了｜形式: ${format.label}｜サイズ: ${sizeMb.toFixed(1)} MB｜360フレーム固定${fallbackNote}`;
+      exportStatus.textContent = `✓ 書き出し完了｜MP4 / H.264｜1920×1080｜30fps｜360 frames｜12.0秒｜${sizeMb.toFixed(1)} MB`;
     } catch (error) {
       console.error("動画書き出しエラー:", error);
-      exportStatus.textContent = `書き出しエラー：${error.message || error}`;
       exportProgressBar.style.width = "0%";
-      if (recorder && recorder.state !== "inactive") recorder.stop();
-      if (stopped) {
-        try { await stopped; } catch (_) {}
-      }
+      exportStatus.textContent = `書き出しエラー：${error.message || error}`;
+      try { encoder?.close(); } catch (_) {}
     } finally {
-      if (stream) stream.getTracks().forEach(track => track.stop());
       const saved = exportState?.previousPlayback || previousPlayback;
       exportState = null;
       isPlaying = saved.isPlaying;
@@ -3975,9 +3959,12 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     glowBoostValue.textContent = Number(glowBoostSlider.value).toFixed(2);
     ssScaleValue.textContent = `${Math.round(ssTransform.scale * 100)}%`;
     updateQrState();
-    if (!canvas.captureStream || typeof MediaRecorder === "undefined" || !getExportMimeCandidates().length) {
+    if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") {
       exportVideoBtn.disabled = true;
-      exportStatus.textContent = "MP4 / WebM動画書き出し非対応ブラウザです。ChromeまたはEdgeをご利用ください。";
+      exportStatus.textContent = "MP4動画書き出し非対応ブラウザです。ChromeまたはEdgeの最新版をご利用ください。";
+    } else if (!window.Mp4Muxer?.Muxer) {
+      exportVideoBtn.disabled = true;
+      exportStatus.textContent = "MP4書き出し部品を読み込めませんでした。通信状態を確認して再読み込みしてください。";
     }
     await Promise.all([ensureCurrentGenreLoaded(), loadSelectedJobMark(), loadQrOffAccessoryAssets()]);
     renderLoop();
