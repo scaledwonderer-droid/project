@@ -4,8 +4,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FFXIV CyberCardGenerator Ver.13</title>
-<meta name="description" content="FF14のスクリーンショットとキャラクターデータから、12秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
+<title>FFXIV CyberCardGenerator Ver.14</title>
+<meta name="description" content="FF14のスクリーンショットとキャラクターデータから、13秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
 <style>
   :root {
     --bg: #0a0d14;
@@ -758,8 +758,8 @@
 <div class="wrap">
 <div class="topbar">
 <div class="titlebox">
-<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.13</span></h1>
-<p>SSとキャラクターデータから、12秒の横型IDビジュアル動画を生成します。</p>
+<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.14</span></h1>
+<p>SSとキャラクターデータから、13秒の横型IDビジュアル動画を生成します。</p>
 </div>
 </div>
 <div class="layout">
@@ -817,12 +817,12 @@
 </label>
 </div><div class="btns">
 <button id="playPauseBtn">一時停止</button>
-<button class="secondary" id="restartBtn">12秒ループを先頭から再生</button>
+<button class="secondary" id="restartBtn">13秒ループを先頭から再生</button>
 </div><div class="export-panel">
-<button id="exportVideoBtn" type="button">12秒動画を書き出す（MP4 / 固定30fps）</button>
+<button id="exportVideoBtn" type="button">13秒動画を書き出す（MP4 / 固定30fps）</button>
 <div class="export-progress" aria-hidden="true"><div class="export-progress-bar" id="exportProgressBar"></div></div>
 <div class="export-result-label">書き出し状況</div>
-<div class="export-status" id="exportStatus">1920×1080 / 固定30fps / 360フレーム / 12秒 / 音声なし。</div>
+<div class="export-status" id="exportStatus">1920×1080 / 固定30fps / 390フレーム / 13秒 / 音声なし。</div>
 </div><div class="smallnote">
 <strong>操作</strong><br/>
 SSはプレビュー上でドラッグして位置を調整できます。マウスホイールまたは拡大率スライダーで大きさを変更してください。
@@ -953,7 +953,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 <section class="public-info" aria-label="利用案内と権利表記">
   <h2>ABOUT</h2>
   <p>スクリーンショットと入力データは、すべてブラウザ内で処理されます。外部サーバーへのアップロードは行いません。</p>
-  <p>SSを選択し、キャラクター情報とプレイスタイルを設定して、プレビュー確認後に12秒動画を書き出してください。動画出力にはChromeまたはEdgeを推奨します。</p>
+  <p>SSを選択し、キャラクター情報とプレイスタイルを設定して、プレビュー確認後に13秒動画を書き出してください。動画出力にはChromeまたはEdgeを推奨します。</p>
   <p>Created by 鱗の旅人</p>
   <p class="copyright-line">© SQUARE ENIX</p>
 </section>
@@ -969,7 +969,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   };
   const CANVAS_W = 1920;
   const CANVAS_H = 1080;
-  const LOOP_MS = 12000;
+  const LOOP_MS = 13000;
   const EXPORT_FPS = 30;
   const EXPORT_FRAME_COUNT = 360;
   const EXPORT_FRAME_DURATION_US = Math.round(1_000_000 / EXPORT_FPS);
@@ -1733,8 +1733,8 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     const ringSize = size * 0.78;
 
     // 36秒で約1回転。中央本体は傾けたまま固定し、外周リングだけを回転させる。
-    // 以前よりさらに遅くし、12秒動画内では約3分の1回転になる。
-    const ringAngle = (ms / (LOOP_MS * 3)) * Math.PI * 2;
+    // 13秒動画内では約0.36回転する。
+    const ringAngle = (ms / 36000) * Math.PI * 2;
 
     // 約3.2秒周期で、全体のシアン発光を静かに脈動させる。
     // リングが埋もれないよう、前版より少しシャープ寄りに調整する。
@@ -2148,7 +2148,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   };
 
   const PRESENTATION = {
-    // 12秒構成
+    // 13秒構成
     // 0.00-0.80  黒背景＋情報UI
     // 0.80-2.00  エンブレム単独＋情報UI
     // 2.00-3.60  SSフェードイン＋情報UI
@@ -2156,7 +2156,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     // 3.80-8.60  SS＋情報UI待機
     // 8.60-10.20 エンブレム再出現
     // 9.40-11.20 SSフェードアウト＋情報UI
-    // 11.20-12.00 黒背景＋エンブレム余韻＋情報UI
+    // 11.20-13.00 黒背景＋エンブレム消灯後の余韻＋情報UI
     ss: { inStart: 2000, inEnd: 3600, outStart: 9400, outEnd: 11200 },
     ui: { inStart: 0, inEnd: 1, outStart: LOOP_MS + 1, outEnd: LOOP_MS + 2 },
     intro: {
@@ -3643,7 +3643,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       .replace(/[\/:*?"<>|]+/g, "-")
       .replace(/\s+/g, "-")
       .slice(0, 48) || "ff14-id";
-    return `${safeName}-${currentJobId}-12s.${extension}`;
+    return `${safeName}-${currentJobId}-13s.${extension}`;
   }
 
   function downloadBlob(blob, filename) {
@@ -3767,7 +3767,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
         const progress = (frameIndex + 1) / EXPORT_FRAME_COUNT;
         exportProgressBar.style.width = `${(progress * 100).toFixed(1)}%`;
-        exportStatus.textContent = `MP4 / H.264を書き出し中… ${frameIndex + 1} / ${EXPORT_FRAME_COUNT} frames｜${(frameMs / 1000).toFixed(1)} / 12.0秒`;
+        exportStatus.textContent = `MP4 / H.264を書き出し中… ${frameIndex + 1} / ${EXPORT_FRAME_COUNT} frames｜${(frameMs / 1000).toFixed(1)} / 13.0秒`;
 
         if (encoder.encodeQueueSize > 8) await encoder.flush();
         if (frameIndex % 4 === 3) await yieldToBrowser();
@@ -3785,7 +3785,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       downloadBlob(blob, makeExportFilename("mp4"));
       const sizeMb = blob.size / 1024 / 1024;
       exportProgressBar.style.width = "100%";
-      exportStatus.textContent = `✓ 書き出し完了｜MP4 / H.264｜1920×1080｜30fps｜360 frames｜12.0秒｜${sizeMb.toFixed(1)} MB`;
+      exportStatus.textContent = `✓ 書き出し完了｜MP4 / H.264｜1920×1080｜30fps｜390 frames｜13.0秒｜${sizeMb.toFixed(1)} MB`;
     } catch (error) {
       console.error("動画書き出しエラー:", error);
       exportProgressBar.style.width = "0%";
