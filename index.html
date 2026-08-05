@@ -1752,9 +1752,15 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.drawImage(qrOffAccessoryImages.centerBody, -bodySize / 2, -bodySize / 2, bodySize, bodySize);
 
     // 内部の白っぽさを少し落として、回転リングを見分けやすくする。
+    // 白テーマで画像矩形が見えないよう、暗化は円形クリップ内だけに限定する。
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, bodySize * 0.39, 0, Math.PI * 2);
+    ctx.clip();
     ctx.globalCompositeOperation = "source-atop";
     ctx.fillStyle = "rgba(24, 36, 50, 0.34)";
     ctx.fillRect(-bodySize / 2, -bodySize / 2, bodySize, bodySize);
+    ctx.restore();
 
     // 本体の縁をわずかに締めて、リングとの境界を見やすくする。
     ctx.globalCompositeOperation = "source-over";
