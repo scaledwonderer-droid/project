@@ -1721,7 +1721,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     const centerY = y + height / 2;
     const size = Math.min(width, height);
     const bodyAngle = -Math.PI / 4; // 黄緑パネルを4時半方向へ向ける。
-    const ringSize = size * 0.98;   // 内周が中央本体へわずかに重なる大きさ。
+    const ringSize = size * 0.88;   // 外周リングの半径を明確に縮め、内周を中央本体へ少し重ねる。
 
     // 12秒で約1回転。中央本体は傾けたまま固定し、外周リングだけを回転させる。
     const ringAngle = (ms / LOOP_MS) * Math.PI * 2;
