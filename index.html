@@ -3298,12 +3298,8 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     } else if (!profileState.qrEnabled) {
       const accessoryDrawn = drawQrOffAccessory(access.qrX, access.qrY, 120, 120, ms);
       if (!accessoryDrawn) {
-        ctx.strokeStyle = palette.qrStroke;
-        ctx.strokeRect(access.qrX, access.qrY, 120, 120);
-        ctx.font = "600 16px Segoe UI, sans-serif";
-        ctx.fillStyle = palette.qrText;
-        ctx.textAlign = "center";
-        ctx.fillText("QR OFF", access.qrX + 60, access.qrY + 51);
+        // QR OFF時は文字や代替枠を表示しない。
+        // 素材の読込失敗はコンソールへ記録し、カード上には何も描画しない。
       }
     } else {
       ctx.strokeStyle = palette.qrStroke;
