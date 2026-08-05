@@ -1754,8 +1754,10 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.drawImage(qrOffAccessoryImages.eyesGlow, -size / 2, -size / 2, size, size);
     ctx.restore();
 
-    // 回転リングは最前面。内周が白い本体へ少しだけ重なる。
+    // 回転リングは必ず通常合成で最前面へ描画する。
+    // 直前のエンブレム描画などで screen 合成が残っていても影響を受けないよう固定する。
     ctx.save();
+    ctx.globalCompositeOperation = "source-over";
     ctx.translate(centerX, centerY);
     ctx.rotate(ringAngle);
     ctx.globalAlpha = glowAlpha;
