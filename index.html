@@ -2730,14 +2730,17 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     }
 
     const isIntro = distortionState.mode === "intro";
-    const sliceOffsetBase = isIntro ? (8 + distortion * 52) : (16 + distortion * 120);
-    const burstChance = isIntro ? (0.08 + distortion * 0.14) : (0.16 + distortion * 0.28);
-    const burstScale = isIntro ? 1.35 : 1.9;
-    const normalScale = isIntro ? 0.72 : 0.8;
-    const tearCount = isIntro ? (1 + Math.floor(distortion * 2)) : (2 + Math.floor(distortion * 5));
-    const tearOffsetBase = isIntro ? (26 + distortion * 110) : (80 + distortion * 240);
-    const noiseAlpha = ((isIntro ? 0.02 : 0.05) + distortion * (isIntro ? 0.10 : 0.22)) * alpha;
-    const flashAlpha = isIntro ? 0 : distortion * 0.10;
+    // フェードイン時とフェードアウト時のエフェクト内容を入れ替える。
+    // タイミングはそのままに、intro は旧 outro プロファイル、outro は旧 intro プロファイルを使う。
+    const useIntroProfile = !isIntro;
+    const sliceOffsetBase = useIntroProfile ? (8 + distortion * 52) : (16 + distortion * 120);
+    const burstChance = useIntroProfile ? (0.08 + distortion * 0.14) : (0.16 + distortion * 0.28);
+    const burstScale = useIntroProfile ? 1.35 : 1.9;
+    const normalScale = useIntroProfile ? 0.72 : 0.8;
+    const tearCount = useIntroProfile ? (1 + Math.floor(distortion * 2)) : (2 + Math.floor(distortion * 5));
+    const tearOffsetBase = useIntroProfile ? (26 + distortion * 110) : (80 + distortion * 240);
+    const noiseAlpha = ((useIntroProfile ? 0.02 : 0.05) + distortion * (useIntroProfile ? 0.10 : 0.22)) * alpha;
+    const flashAlpha = useIntroProfile ? 0 : distortion * 0.10;
 
     ssEffectCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
     drawSsToContext(ssEffectCtx, img, alpha);
@@ -2751,7 +2754,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       const seed = ms * 0.071 + sliceIndex * 17.123;
       const sliceH = Math.min(
         CANVAS_H - y,
-        Math.max(isIntro ? 12 : 8, Math.round((isIntro ? 18 : 12) + hashNoise(seed + 0.7) * (isIntro ? 26 : 30)))
+        Math.max(useIntroProfile ? 12 : 8, Math.round((useIntroProfile ? 18 : 12) + hashNoise(seed + 0.7) * (useIntroProfile ? 26 : 30)))
       );
       const burst = hashNoise(seed + 2.3) < burstChance ? burstScale : normalScale;
       const offset = signedNoise(seed + 1.4) * sliceOffsetBase * burst;
@@ -2763,13 +2766,13 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     for (let i = 0; i < tearCount; i += 1) {
       const seed = ms * 0.017 + i * 33.7;
       const bandY = Math.floor(hashNoise(seed + 1.1) * (CANVAS_H - 80));
-      const bandH = Math.round((isIntro ? 12 : 14) + hashNoise(seed + 2.7) * ((isIntro ? 20 : 28) + distortion * (isIntro ? 26 : 44)));
+      const bandH = Math.round((useIntroProfile ? 12 : 14) + hashNoise(seed + 2.7) * ((useIntroProfile ? 20 : 28) + distortion * (useIntroProfile ? 26 : 44)));
       const offset = signedNoise(seed + 3.9) * tearOffsetBase;
       ctx.drawImage(ssEffectCanvas, 0, bandY, CANVAS_W, bandH, offset, bandY, CANVAS_W, bandH);
 
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = isIntro ? (0.04 + distortion * 0.08) : (0.08 + distortion * 0.16);
+      ctx.globalAlpha = useIntroProfile ? (0.04 + distortion * 0.08) : (0.08 + distortion * 0.16);
       ctx.fillStyle = hashNoise(seed + 5.2) > 0.5 ? "rgba(110,210,255,1)" : "rgba(255,120,120,1)";
       ctx.fillRect(0, bandY, CANVAS_W, Math.max(2, Math.round(bandH * 0.10)));
       ctx.restore();
@@ -2778,7 +2781,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     if (noiseAlpha > 0) {
       ctx.save();
       ctx.globalAlpha = noiseAlpha;
-      const block = isIntro ? 5 : 4;
+      const block = useIntroProfile ? 5 : 4;
       for (let ny = 0; ny < CANVAS_H; ny += block) {
         for (let nx = 0; nx < CANVAS_W; nx += block) {
           const v = hashNoise(nx * 0.053 + ny * 0.067 + ms * 0.18);
@@ -2790,7 +2793,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       ctx.restore();
     }
 
-    if (isIntro) {
+    if (useIntroProfile) {
       ctx.save();
       ctx.globalCompositeOperation = "screen";
       ctx.globalAlpha = distortion * 0.045;
