@@ -1732,9 +1732,10 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     const ringAngle = (ms / LOOP_MS) * Math.PI * 2;
 
     // 約3.2秒周期で、全体のシアン発光を静かに脈動させる。
+    // リングが埋もれないよう、前版より少しシャープ寄りに調整する。
     const glowPulse = 0.5 + 0.5 * Math.sin((ms / 3200) * Math.PI * 2 - Math.PI / 2);
-    const glowAlpha = 0.78 + glowPulse * 0.18;
-    const glowBlur = 4 + glowPulse * 7;
+    const glowAlpha = 0.84 + glowPulse * 0.12;
+    const glowBlur = 2.4 + glowPulse * 3.1;
 
     // 目は強く消灯させず、わずかな明暗差だけを付ける。
     const eyePulse = 0.5 + 0.5 * Math.sin((ms / 1850) * Math.PI * 2 + 0.7);
@@ -1748,6 +1749,19 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
     ctx.shadowBlur = 5;
     ctx.drawImage(qrOffAccessoryImages.centerBody, -bodySize / 2, -bodySize / 2, bodySize, bodySize);
+
+    // 内部の白っぽさを少し落として、回転リングを見分けやすくする。
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.fillStyle = "rgba(32, 46, 60, 0.24)";
+    ctx.fillRect(-bodySize / 2, -bodySize / 2, bodySize, bodySize);
+
+    // 本体の縁をわずかに締めて、リングとの境界を見やすくする。
+    ctx.globalCompositeOperation = "source-over";
+    ctx.beginPath();
+    ctx.arc(0, 0, bodySize * 0.365, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(12, 22, 32, 0.22)";
+    ctx.lineWidth = Math.max(1.2, bodySize * 0.016);
+    ctx.stroke();
     ctx.restore();
 
     ctx.save();
@@ -1755,7 +1769,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.rotate(bodyAngle);
     ctx.globalAlpha = eyeAlpha;
     ctx.shadowColor = "rgba(52, 246, 255, 0.92)";
-    ctx.shadowBlur = 5 + glowPulse * 5;
+    ctx.shadowBlur = 4 + glowPulse * 3.6;
     ctx.drawImage(qrOffAccessoryImages.eyesGlow, -eyesSize / 2, -eyesSize / 2, eyesSize, eyesSize);
     ctx.restore();
 
@@ -1766,7 +1780,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.translate(centerX, centerY);
     ctx.rotate(ringAngle);
     ctx.globalAlpha = glowAlpha;
-    ctx.shadowColor = "rgba(52, 246, 255, 0.82)";
+    ctx.shadowColor = "rgba(52, 246, 255, 0.72)";
     ctx.shadowBlur = glowBlur;
     ctx.drawImage(qrOffAccessoryImages.outerRing, -ringSize / 2, -ringSize / 2, ringSize, ringSize);
     ctx.restore();
