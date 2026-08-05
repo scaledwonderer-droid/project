@@ -2092,6 +2092,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   let jobMarkImage = null;
   let jobMarkLoadRequestId = 0;
   const jobMarkGlowCache = new WeakMap();
+  const lightThemeDarkSilhouetteCache = new WeakMap();
   const ssTransform = {
     scale: 1,
     offsetX: 0,
@@ -2775,6 +2776,30 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.restore();
   }
 
+  function getLightThemeDarkSilhouette(img) {
+    if (!img) return null;
+    if (!lightThemeDarkSilhouetteCache.has(img)) {
+      lightThemeDarkSilhouetteCache.set(img, makeTintedCanvas(img, "rgba(10, 16, 22, 1)"));
+    }
+    return lightThemeDarkSilhouetteCache.get(img);
+  }
+
+  function drawLightThemeDarkUnderlay(img, cx, cy, size, rotationRad = 0, alpha = 1, scale = 1, dx = 0, dy = 0, blur = 0) {
+    if (themeSelect.value !== "light" || !img || alpha <= 0) return;
+    const silhouette = getLightThemeDarkSilhouette(img);
+    if (!silhouette) return;
+    const w = size * scale;
+    const h = size * scale;
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = alpha;
+    ctx.filter = blur > 0 ? `blur(${blur}px)` : "none";
+    ctx.translate(cx + dx, cy + dy);
+    ctx.rotate(rotationRad);
+    ctx.drawImage(silhouette, -w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+
   function drawTintedGlow(glowCanvas, cx, cy, size, rotationRad, alpha, glowBoost) {
     if (!glowCanvas || alpha <= 0) return;
 
@@ -2965,6 +2990,25 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       const ratio = Math.min(drawSize / iw, drawSize / ih);
       const dw = iw * ratio;
       const dh = ih * ratio;
+
+      if (themeSelect.value === "light") {
+        const darkMark = getLightThemeDarkSilhouette(jobMarkImage);
+        if (darkMark) {
+          ctx.save();
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 0.38 * alpha;
+          ctx.filter = "blur(18px)";
+          ctx.drawImage(darkMark, markX - dw * 0.54, markY - dh * 0.54, dw * 1.08, dh * 1.08);
+          ctx.restore();
+
+          ctx.save();
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 0.58 * alpha;
+          ctx.filter = "blur(5px)";
+          ctx.drawImage(darkMark, markX - dw * 0.51, markY - dh * 0.51, dw * 1.02, dh * 1.02);
+          ctx.restore();
+        }
+      }
 
       drawJobMarkGlow(jobMarkImage, markX, markY, dw, dh, accentColor, alpha, glowBoost, phase);
 
@@ -3295,6 +3339,25 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
     const item = assets.images;
     const glowCanvas = getTintedGlowCanvas(currentGenre, cfg.accent);
+
+    // LIGHTテーマでは、白い台紙や明るいSS上で外装線が消えないよう、
+    // 同じ形状の薄い黒シルエットを外装の背面へ重ねる。
+    if (videoTheme.name === "light") {
+      drawLightThemeDarkUnderlay(item.frameBack, pos.x, pos.y, size, 0,
+        BASE_LAYER_ALPHA.frameBack * presentation.frameBack * frameOpacityMul * 0.34, 1, 0, 0, 5);
+      drawLightThemeDarkUnderlay(item.ringOuter, pos.x, pos.y, size, outerAngle,
+        BASE_LAYER_ALPHA.ringOuter * presentation.ringOuter * frameOpacityMul * 0.42, 1, 0, 0, 2);
+      if (cfg.hasMiddle && item.ringMiddle) {
+        drawLightThemeDarkUnderlay(item.ringMiddle, pos.x, pos.y, size, middleAngle,
+          BASE_LAYER_ALPHA.ringMiddle * presentation.ringMiddle * frameOpacityMul * 0.40, 1, 0, 0, 2);
+      }
+      drawLightThemeDarkUnderlay(item.ringInner, pos.x, pos.y, size, innerAngle,
+        BASE_LAYER_ALPHA.ringInner * presentation.ringInner * frameOpacityMul * 0.44, healerBreathe, 0, 0, 2);
+      drawLightThemeDarkUnderlay(item.parts, pos.x, pos.y, size, 0,
+        BASE_LAYER_ALPHA.parts * presentation.parts * frameOpacityMul * 0.38, 1, partsOffset.dx, partsOffset.dy, 2);
+      drawLightThemeDarkUnderlay(item.markings, pos.x, pos.y, size, 0,
+        BASE_LAYER_ALPHA.markings * presentation.markings * frameOpacityMul * 0.46, 1, 0, 0, 1);
+    }
 
     // --- Emblem intro / outro only ---
     drawLayer(
