@@ -969,6 +969,9 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   const CANVAS_W = 1920;
   const CANVAS_H = 1080;
   const LOOP_MS = 12000;
+  const EXPORT_FPS = 30;
+  const EXPORT_FRAME_MS = 1000 / EXPORT_FPS;
+  const EXPORT_FRAME_COUNT = Math.round((LOOP_MS / 1000) * EXPORT_FPS);
 
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d");
@@ -3373,7 +3376,12 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
   function getLoopMs() {
     if (exportState) {
-      return Math.min(LOOP_MS, Math.max(0, performance.now() - exportState.startedAt));
+      if (Number.isFinite(exportState.timelineMs)) {
+        return Math.min(LOOP_MS, Math.max(0, exportState.timelineMs));
+      }
+      if (Number.isFinite(exportState.startedAt)) {
+        return Math.min(LOOP_MS, Math.max(0, performance.now() - exportState.startedAt));
+      }
     }
     if (isPlaying) {
       return (performance.now() - startTime) % LOOP_MS;
@@ -3675,6 +3683,30 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     return `${safeName}-${currentJobId}-12s.${extension}`;
   }
 
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function waitForNextFrameTime(targetTime) {
+    while (true) {
+      const remaining = targetTime - performance.now();
+      if (remaining <= 1) return;
+      if (remaining > 8) {
+        await sleep(Math.max(0, remaining - 4));
+      } else {
+        await new Promise(resolve => requestAnimationFrame(() => resolve()));
+      }
+    }
+  }
+
+  function updateExportProgress(frameIndex, format) {
+    const safeIndex = Math.max(0, Math.min(EXPORT_FRAME_COUNT, frameIndex));
+    const progress = safeIndex / EXPORT_FRAME_COUNT;
+    const logicalMs = Math.min(LOOP_MS, safeIndex * EXPORT_FRAME_MS);
+    exportProgressBar.style.width = `${(progress * 100).toFixed(1)}%`;
+    exportStatus.textContent = `${format.label}で書き出し中… ${safeIndex} / ${EXPORT_FRAME_COUNT} frames｜${(logicalMs / 1000).toFixed(1)} / ${(LOOP_MS / 1000).toFixed(1)}秒`;
+  }
+
   async function exportVideo() {
     if (exportState) return;
     if (!canvas.captureStream || typeof MediaRecorder === "undefined") {
@@ -3683,50 +3715,70 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     }
 
     const previousPlayback = { isPlaying, startTime, pausedElapsed };
+    const previousLoopMs = getLoopMs();
     const chunks = [];
     let stream;
     let recorder;
+    let stopped;
 
     try {
-      stream = canvas.captureStream(30);
+      if (rafId != null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
+      exportVideoBtn.disabled = true;
+      playPauseBtn.disabled = true;
+      restartBtn.disabled = true;
+      exportProgressBar.style.width = "0%";
+      isPlaying = false;
+      pausedElapsed = previousLoopMs;
+      playPauseBtn.textContent = "再生";
+
+      stream = canvas.captureStream(0);
       const recorderSetup = createSupportedRecorder(stream);
       recorder = recorderSetup.recorder;
       const format = recorderSetup.format;
+      const videoTrack = stream.getVideoTracks()[0];
+      const canRequestFrame = Boolean(videoTrack && typeof videoTrack.requestFrame === "function");
+      if (!canRequestFrame) {
+        throw new Error("このブラウザは安定書き出しに必要な requestFrame に対応していません。ChromeまたはEdgeの最新版をご利用ください。");
+      }
 
       recorder.addEventListener("dataavailable", event => {
         if (event.data && event.data.size > 0) chunks.push(event.data);
       });
 
-      const stopped = new Promise((resolve, reject) => {
+      stopped = new Promise((resolve, reject) => {
         recorder.addEventListener("stop", resolve, { once: true });
         recorder.addEventListener("error", event => reject(event.error || new Error("動画の録画に失敗しました")), { once: true });
       });
 
-      exportState = { startedAt: performance.now(), previousPlayback };
-      exportVideoBtn.disabled = true;
-      playPauseBtn.disabled = true;
-      restartBtn.disabled = true;
-      exportProgressBar.style.width = "0%";
-      exportStatus.textContent = `${format.label}で書き出し中… 0.0 / ${(LOOP_MS / 1000).toFixed(1)}秒`;
+      exportState = {
+        previousPlayback,
+        timelineMs: 0,
+        startedAt: performance.now(),
+        frameIndex: 0,
+        frameCount: EXPORT_FRAME_COUNT,
+        mode: "frame-stepped"
+      };
 
-      recorder.start(250);
+      updateExportProgress(0, format);
+      recorder.start();
+      await sleep(80);
 
-      await new Promise(resolve => {
-        const update = () => {
-          if (!exportState) return resolve();
-          const elapsed = performance.now() - exportState.startedAt;
-          const progress = Math.min(1, elapsed / LOOP_MS);
-          exportProgressBar.style.width = `${(progress * 100).toFixed(1)}%`;
-          exportStatus.textContent = `${format.label}で書き出し中… ${(Math.min(elapsed, LOOP_MS) / 1000).toFixed(1)} / ${(LOOP_MS / 1000).toFixed(1)}秒`;
-          if (elapsed >= LOOP_MS) return resolve();
-          requestAnimationFrame(update);
-        };
-        requestAnimationFrame(update);
-      });
+      const exportStartAt = performance.now();
+      for (let frameIndex = 0; frameIndex < EXPORT_FRAME_COUNT; frameIndex++) {
+        const frameMs = Math.min(LOOP_MS - EXPORT_FRAME_MS, frameIndex * EXPORT_FRAME_MS);
+        exportState.timelineMs = frameMs;
+        exportState.frameIndex = frameIndex + 1;
+        drawScene(frameMs);
+        videoTrack.requestFrame();
+        updateExportProgress(frameIndex + 1, format);
+        await waitForNextFrameTime(exportStartAt + ((frameIndex + 1) * EXPORT_FRAME_MS));
+      }
 
-      // 最終フレームを確実に取り込ませてから停止する
-      drawScene(LOOP_MS);
-      await new Promise(resolve => setTimeout(resolve, 120));
+      await sleep(120);
       recorder.stop();
       await stopped;
 
@@ -3745,12 +3797,15 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       const sizeMb = blob.size / 1024 / 1024;
       exportProgressBar.style.width = "100%";
       const fallbackNote = format.extension === "mp4" ? "" : "｜MP4非対応のためWebMで保存";
-      exportStatus.textContent = `✓ 書き出し完了｜形式: ${format.label}｜サイズ: ${sizeMb.toFixed(1)} MB${fallbackNote}`;
+      exportStatus.textContent = `✓ 書き出し完了｜形式: ${format.label}｜サイズ: ${sizeMb.toFixed(1)} MB｜360フレーム固定${fallbackNote}`;
     } catch (error) {
       console.error("動画書き出しエラー:", error);
       exportStatus.textContent = `書き出しエラー：${error.message || error}`;
       exportProgressBar.style.width = "0%";
       if (recorder && recorder.state !== "inactive") recorder.stop();
+      if (stopped) {
+        try { await stopped; } catch (_) {}
+      }
     } finally {
       if (stream) stream.getTracks().forEach(track => track.stop());
       const saved = exportState?.previousPlayback || previousPlayback;
@@ -3762,6 +3817,8 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       exportVideoBtn.disabled = false;
       playPauseBtn.disabled = false;
       restartBtn.disabled = false;
+      drawScene(getLoopMs());
+      if (rafId == null) renderLoop();
     }
   }
 
