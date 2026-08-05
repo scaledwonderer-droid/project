@@ -3154,7 +3154,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.restore();
   }
 
-  function drawOverlayTextBlock(alpha = 1) {
+  function drawOverlayTextBlock(alpha = 1, ms = 0) {
     if (alpha <= 0) return;
 
     const preset = positionSelect.value;
@@ -3512,7 +3512,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     drawJobMark(pos.x, pos.y, BASE_LAYER_ALPHA.jobMark * presentation.jobMark, presentation.jobMark, cfg.accent, glowBoost);
 
     // この企画では情報UIを常時表示し、SSとエンブレムのみをタイムライン制御する
-    drawOverlayTextBlock(presentation.uiAlpha);
+    drawOverlayTextBlock(presentation.uiAlpha, ms);
   }
 
   async function ensureCurrentGenreLoaded() {
