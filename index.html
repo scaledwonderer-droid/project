@@ -1720,9 +1720,11 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     const centerX = x + width / 2;
     const centerY = y + height / 2;
     const size = Math.min(width, height);
+    const bodyAngle = -Math.PI / 4; // 黄緑パネルを4時半方向へ向ける。
+    const ringSize = size * 0.98;   // 内周が中央本体へわずかに重なる大きさ。
 
-    // 12秒で約1.25回転。中央本体は固定し、外周リングだけを回転させる。
-    const ringAngle = (ms / LOOP_MS) * Math.PI * 2 * 1.25;
+    // 12秒で約1回転。中央本体は傾けたまま固定し、外周リングだけを回転させる。
+    const ringAngle = (ms / LOOP_MS) * Math.PI * 2;
 
     // 約3.2秒周期で、全体のシアン発光を静かに脈動させる。
     const glowPulse = 0.5 + 0.5 * Math.sin((ms / 3200) * Math.PI * 2 - Math.PI / 2);
@@ -1733,27 +1735,33 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     const eyePulse = 0.5 + 0.5 * Math.sin((ms / 1850) * Math.PI * 2 + 0.7);
     const eyeAlpha = 0.72 + eyePulse * 0.28;
 
+    // 中央本体と目を一緒に傾ける。リングより先に描き、リングを前面へ重ねる。
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(bodyAngle);
+    ctx.globalAlpha = 0.98;
+    ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
+    ctx.shadowBlur = 5;
+    ctx.drawImage(qrOffAccessoryImages.centerBody, -size / 2, -size / 2, size, size);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(bodyAngle);
+    ctx.globalAlpha = eyeAlpha;
+    ctx.shadowColor = "rgba(52, 246, 255, 0.92)";
+    ctx.shadowBlur = 5 + glowPulse * 5;
+    ctx.drawImage(qrOffAccessoryImages.eyesGlow, -size / 2, -size / 2, size, size);
+    ctx.restore();
+
+    // 回転リングは最前面。内周が白い本体へ少しだけ重なる。
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(ringAngle);
     ctx.globalAlpha = glowAlpha;
     ctx.shadowColor = "rgba(52, 246, 255, 0.82)";
     ctx.shadowBlur = glowBlur;
-    ctx.drawImage(qrOffAccessoryImages.outerRing, -size / 2, -size / 2, size, size);
-    ctx.restore();
-
-    ctx.save();
-    ctx.globalAlpha = 0.98;
-    ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
-    ctx.shadowBlur = 5;
-    ctx.drawImage(qrOffAccessoryImages.centerBody, x, y, size, size);
-    ctx.restore();
-
-    ctx.save();
-    ctx.globalAlpha = eyeAlpha;
-    ctx.shadowColor = "rgba(52, 246, 255, 0.92)";
-    ctx.shadowBlur = 5 + glowPulse * 5;
-    ctx.drawImage(qrOffAccessoryImages.eyesGlow, x, y, size, size);
+    ctx.drawImage(qrOffAccessoryImages.outerRing, -ringSize / 2, -ringSize / 2, ringSize, ringSize);
     ctx.restore();
 
     return true;
