@@ -1726,7 +1726,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     // 中央本体よりかなり小さめに回転リングを描画する。
     const bodySize = size;
     const eyesSize = size;
-    const ringSize = size * 0.76;
+    const ringSize = size * 0.78;
 
     // 36秒で約1回転。中央本体は傾けたまま固定し、外周リングだけを回転させる。
     // 以前よりさらに遅くし、12秒動画内では約3分の1回転になる。
@@ -1753,7 +1753,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
     // 内部の白っぽさを少し落として、回転リングを見分けやすくする。
     ctx.globalCompositeOperation = "source-atop";
-    ctx.fillStyle = "rgba(32, 46, 60, 0.24)";
+    ctx.fillStyle = "rgba(24, 36, 50, 0.34)";
     ctx.fillRect(-bodySize / 2, -bodySize / 2, bodySize, bodySize);
 
     // 本体の縁をわずかに締めて、リングとの境界を見やすくする。
@@ -1775,15 +1775,24 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.restore();
 
     // 回転リングは通常合成で最前面へ描画する。
-    // ただしサイズは本体外周より内側に収まる値へ固定する。
+    // まず発光だけを描き、その上へ輪郭の鮮明な本体を重ねて回転を判別しやすくする。
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     ctx.translate(centerX, centerY);
     ctx.rotate(ringAngle);
-    ctx.globalAlpha = glowAlpha;
-    ctx.shadowColor = "rgba(52, 246, 255, 0.72)";
-    ctx.shadowBlur = glowBlur;
+
+    // 発光パス。ぼかしは残すが、輪郭を潰さない程度に抑える。
+    ctx.globalAlpha = 0.72 + glowPulse * 0.16;
+    ctx.shadowColor = "rgba(70, 252, 255, 0.98)";
+    ctx.shadowBlur = 4.5 + glowPulse * 3.5;
     ctx.drawImage(qrOffAccessoryImages.outerRing, -ringSize / 2, -ringSize / 2, ringSize, ringSize);
+
+    // シャープパス。影を切り、同じ画像をもう一度重ねて棒一本一本の芯を出す。
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.filter = "brightness(1.28) contrast(1.22) saturate(1.18)";
+    ctx.drawImage(qrOffAccessoryImages.outerRing, -ringSize / 2, -ringSize / 2, ringSize, ringSize);
+    ctx.filter = "none";
     ctx.restore();
 
     return true;
