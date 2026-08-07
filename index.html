@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FFXIV CyberCardGenerator Ver.15</title>
+<title>FFXIV CyberCardGenerator Ver.17</title>
 <meta name="description" content="FF14のスクリーンショットとキャラクターデータから、13秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
 <style>
   :root {
@@ -758,7 +758,7 @@
 <div class="wrap">
 <div class="topbar">
 <div class="titlebox">
-<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.15</span></h1>
+<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.17</span></h1>
 <p>SSとキャラクターデータから、13秒の横型IDビジュアル動画を生成します。</p>
 </div>
 </div>
@@ -1049,6 +1049,9 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     "Viera": ["Rava", "Veena"]
   };
 
+  const FANTASIA_OPTION = "幻想薬中毒";
+  const RESTORE_FLAG_FANTASIA = 1;
+
   const profileState = {
     characterName: "",
     dataCenter: "Elemental",
@@ -1238,8 +1241,9 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
     const dcIndex = Math.max(0, dcNames.indexOf(profileState.dataCenter));
     const worldIndex = Math.max(0, (DATA_CENTERS[profileState.dataCenter] || []).indexOf(profileState.world));
-    const raceIndex = Math.max(0, raceNames.indexOf(profileState.race));
-    const clanIndex = Math.max(0, (RACES[profileState.race] || []).indexOf(profileState.clan));
+    const isFantasia = profileState.race === FANTASIA_OPTION;
+    const raceIndex = isFantasia ? 0 : Math.max(0, raceNames.indexOf(profileState.race));
+    const clanIndex = isFantasia ? 0 : Math.max(0, (RACES[profileState.race] || []).indexOf(profileState.clan));
 
     let playStyleMask = 0n;
     playStyleNames.forEach((name, index) => {
@@ -1267,7 +1271,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     writeBits(parts, profileState.qrEnabled ? 1 : 0, 1);
     writeBits(parts, sizeIndex, 2);
     writeBits(parts, themeSelect.value === "light" ? 1 : 0, 1); // video theme
-    writeBits(parts, 0, 8); // reserved
+    writeBits(parts, isFantasia ? RESTORE_FLAG_FANTASIA : 0, 8); // reserved / special flags
 
     const payloadBytes = bigIntToBytes(parts.value, parts.length);
     const checksum = crc16Ccitt(payloadBytes);
@@ -1367,7 +1371,8 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     if (reader.remaining !== 0) throw new Error("IDコード内に未解析データがあります。");
     if (!jobs[mainJobIndex]) throw new Error("メインジョブ番号が範囲外です。");
     if (!dcNames[dcIndex] || !DATA_CENTERS[dcNames[dcIndex]][worldIndex]) throw new Error("DC / World情報が範囲外です。");
-    if (!raceNames[raceIndex] || !RACES[raceNames[raceIndex]][clanIndex]) throw new Error("種族 / 部族情報が範囲外です。");
+    const isFantasia = (reserved & RESTORE_FLAG_FANTASIA) !== 0;
+    if (!isFantasia && (!raceNames[raceIndex] || !RACES[raceNames[raceIndex]][clanIndex])) throw new Error("種族 / 部族情報が範囲外です。");
     if (presetIndex > 2) throw new Error("レイアウトプリセット情報が範囲外です。");
     if (sizeIndex >= sizeSelect.options.length) throw new Error("エンブレムサイズ情報が範囲外です。");
     if (themeIndex > 1) throw new Error("テーマ情報が範囲外です。");
@@ -1391,8 +1396,8 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       subJobs,
       dataCenter: dcNames[dcIndex],
       world: DATA_CENTERS[dcNames[dcIndex]][worldIndex],
-      race: raceNames[raceIndex],
-      clan: RACES[raceNames[raceIndex]][clanIndex],
+      race: isFantasia ? FANTASIA_OPTION : raceNames[raceIndex],
+      clan: isFantasia ? FANTASIA_OPTION : RACES[raceNames[raceIndex]][clanIndex],
       playStyles,
       storedLevel,
       storedScore: (storedScoreQuantized / 100) - 10,
@@ -1401,7 +1406,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       sizeIndex,
       themeIndex,
       theme: themeIndex === 1 ? "light" : "dark",
-      reserved
+      reserved: reserved & ~RESTORE_FLAG_FANTASIA
     };
   }
 
@@ -2244,6 +2249,17 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
       });
       select.appendChild(optgroup);
     });
+
+    if (select === raceSelect) {
+      const specialGroup = document.createElement("optgroup");
+      specialGroup.label = "SPECIAL";
+      const specialOption = document.createElement("option");
+      specialOption.value = `${FANTASIA_OPTION}|${FANTASIA_OPTION}`;
+      specialOption.textContent = FANTASIA_OPTION;
+      if (specialOption.value === selectedPair) specialOption.selected = true;
+      specialGroup.appendChild(specialOption);
+      select.appendChild(specialGroup);
+    }
   }
 
   function applyDcWorldSelection() {
@@ -3260,7 +3276,10 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.font = "700 22px Segoe UI, sans-serif";
     ctx.fillStyle = palette.subValue;
     ctx.fillText(`${profileState.dataCenter.toUpperCase()} / ${profileState.world.toUpperCase()}`, origin.x, origin.y + 38);
-    ctx.fillText(`${profileState.race.toUpperCase()} / ${profileState.clan.toUpperCase()}`, origin.x, origin.y + 74);
+    const raceClanLabel = profileState.race === FANTASIA_OPTION
+      ? "Fantasia Addict"
+      : `${profileState.race.toUpperCase()} / ${profileState.clan.toUpperCase()}`;
+    ctx.fillText(raceClanLabel, origin.x, origin.y + 74);
 
     // Analysis
     ctx.textAlign = analysis.align;
