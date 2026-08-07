@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FFXIV CyberCardGenerator Ver.17</title>
+<title>FFXIV CyberCardGenerator Ver.18</title>
 <meta name="description" content="FF14のスクリーンショットとキャラクターデータから、13秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
 <style>
   :root {
@@ -758,7 +758,7 @@
 <div class="wrap">
 <div class="topbar">
 <div class="titlebox">
-<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.17</span></h1>
+<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.18</span></h1>
 <p>SSとキャラクターデータから、13秒の横型IDビジュアル動画を生成します。</p>
 </div>
 </div>
@@ -3257,7 +3257,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
     ctx.font = "800 56px Segoe UI, sans-serif";
     ctx.fillStyle = palette.identityName;
-    ctx.fillText((profileState.characterName || "CHARACTER NAME").toUpperCase(), identity.x, identity.y + 42);
+    ctx.fillText(profileState.characterName || "CHARACTER NAME", identity.x, identity.y + 42);
 
     ctx.font = "650 22px Segoe UI, sans-serif";
     ctx.fillStyle = palette.subLabel;
