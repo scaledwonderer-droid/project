@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FFXIV CyberCardGenerator Ver.18</title>
+<title>FFXIV CyberCardGenerator Ver.19</title>
 <meta name="description" content="FF14のスクリーンショットとキャラクターデータから、13秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
 <style>
   :root {
@@ -758,7 +758,7 @@
 <div class="wrap">
 <div class="topbar">
 <div class="titlebox">
-<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.18</span></h1>
+<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.19</span></h1>
 <p>SSとキャラクターデータから、13秒の横型IDビジュアル動画を生成します。</p>
 </div>
 </div>
@@ -814,6 +814,10 @@
 <label class="check">
 <input id="imageDistortion" type="checkbox"/>
 <span>SSフェード時の画像乱れ</span>
+</label>
+<label class="check">
+<input id="communicationNoise" type="checkbox"/>
+<span>通信障害（常時ノイズ）</span>
 </label>
 </div><div class="btns">
 <button id="playPauseBtn">一時停止</button>
@@ -1012,6 +1016,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
   const resetSsBtn = document.getElementById("resetSsBtn");
   const showJobMark = document.getElementById("showJobMark");
   const imageDistortionToggle = document.getElementById("imageDistortion");
+  const communicationNoiseToggle = document.getElementById("communicationNoise");
   const playPauseBtn = document.getElementById("playPauseBtn");
   const restartBtn = document.getElementById("restartBtn");
   const exportVideoBtn = document.getElementById("exportVideoBtn");
@@ -2741,6 +2746,75 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     return { level: 0, mode: "none", progress: 0 };
   }
 
+  function getCommunicationNoiseLevel(alpha, ms) {
+    if (!communicationNoiseToggle.checked || alpha <= 0.001) return 0;
+    const breathe = 0.88 + (0.12 * (0.5 + 0.5 * Math.sin((ms / 2600) * Math.PI * 2 + 0.6)));
+    return clamp01(alpha) * 0.17 * breathe;
+  }
+
+  function drawCommunicationNoise(img, alpha, ms) {
+    const level = getCommunicationNoiseLevel(alpha, ms);
+    if (level <= 0.001) return;
+
+    ssEffectCtx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    drawSsToContext(ssEffectCtx, img, alpha);
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+
+    const sliceCount = 4 + Math.floor(level * 18);
+    for (let i = 0; i < sliceCount; i += 1) {
+      const seed = ms * 0.041 + i * 21.173;
+      const bandY = Math.floor(hashNoise(seed + 0.4) * (CANVAS_H - 28));
+      const bandH = Math.max(2, Math.round(2 + hashNoise(seed + 1.3) * (8 + level * 18)));
+      const offset = signedNoise(seed + 2.1) * (3 + level * 16);
+      ctx.globalAlpha = 0.035 + level * 0.18;
+      ctx.drawImage(ssEffectCanvas, 0, bandY, CANVAS_W, bandH, offset, bandY, CANVAS_W, bandH);
+    }
+
+    const tearCount = 1 + Math.floor(level * 5);
+    for (let i = 0; i < tearCount; i += 1) {
+      const seed = ms * 0.018 + i * 31.9;
+      const bandY = Math.floor(hashNoise(seed + 3.7) * (CANVAS_H - 20));
+      const lineH = 1 + Math.floor(hashNoise(seed + 4.2) * 2);
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = 0.03 + level * 0.11;
+      ctx.fillStyle = hashNoise(seed + 4.8) > 0.45 ? "rgba(110,210,255,1)" : "rgba(255,120,120,1)";
+      ctx.fillRect(0, bandY, CANVAS_W, lineH);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.02 + level * 0.08;
+    const scanY = (ms * 1.1) % (CANVAS_H + 120) - 60;
+    const scanGrad = ctx.createLinearGradient(0, scanY - 20, 0, scanY + 20);
+    scanGrad.addColorStop(0, "rgba(255,255,255,0)");
+    scanGrad.addColorStop(0.5, "rgba(210,235,255,1)");
+    scanGrad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = scanGrad;
+    ctx.fillRect(0, scanY - 20, CANVAS_W, 40);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.010 + level * 0.030;
+    const block = 6;
+    for (let ny = 0; ny < CANVAS_H; ny += block) {
+      for (let nx = 0; nx < CANVAS_W; nx += block) {
+        const v = hashNoise(nx * 0.037 + ny * 0.051 + ms * 0.11);
+        if (v > 0.89) {
+          const c = Math.floor(110 + v * 145);
+          ctx.fillStyle = `rgba(${c},${c},${c},0.85)`;
+          ctx.fillRect(nx, ny, block, block);
+        }
+      }
+    }
+    ctx.restore();
+
+    ctx.restore();
+  }
+
   function drawCoverImageWithDistortion(img, alpha, ms) {
     const distortionState = getTransitionDistortionState(ms);
     const distortion = distortionState.level;
@@ -3446,6 +3520,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
         ctx.fillStyle = videoTheme.ssTint;
         ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
         ctx.restore();
+        drawCommunicationNoise(bgImage, presentation.ssAlpha, ms);
       }
     } else {
       drawDefaultBackground(ms, presentation.ssAlpha);
