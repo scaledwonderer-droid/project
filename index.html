@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>FFXIV CyberCardGenerator Ver.19</title>
+<title>FFXIV CyberCardGenerator Ver.20</title>
 <meta name="description" content="FF14のスクリーンショットとキャラクターデータから、13秒の横型IDビジュアル動画をブラウザ内で生成する非公式ファンツールです。"/>
 <style>
   :root {
@@ -758,7 +758,7 @@
 <div class="wrap">
 <div class="topbar">
 <div class="titlebox">
-<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.19</span></h1>
+<h1>FFXIV CyberCardGenerator <span style="font-size:.72em;font-weight:600;opacity:.72;white-space:nowrap;">Ver.20</span></h1>
 <p>SSとキャラクターデータから、13秒の横型IDビジュアル動画を生成します。</p>
 </div>
 </div>
@@ -2748,8 +2748,7 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
 
   function getCommunicationNoiseLevel(alpha, ms) {
     if (!communicationNoiseToggle.checked || alpha <= 0.001) return 0;
-    const breathe = 0.88 + (0.12 * (0.5 + 0.5 * Math.sin((ms / 2600) * Math.PI * 2 + 0.6)));
-    return clamp01(alpha) * 0.17 * breathe;
+    return clamp01(alpha) * 0.16;
   }
 
   function drawCommunicationNoise(img, alpha, ms) {
@@ -2762,55 +2761,87 @@ SSはプレビュー上でドラッグして位置を調整できます。マウ
     ctx.save();
     ctx.imageSmoothingEnabled = true;
 
-    const sliceCount = 4 + Math.floor(level * 18);
-    for (let i = 0; i < sliceCount; i += 1) {
-      const seed = ms * 0.041 + i * 21.173;
-      const bandY = Math.floor(hashNoise(seed + 0.4) * (CANVAS_H - 28));
-      const bandH = Math.max(2, Math.round(2 + hashNoise(seed + 1.3) * (8 + level * 18)));
-      const offset = signedNoise(seed + 2.1) * (3 + level * 16);
-      ctx.globalAlpha = 0.035 + level * 0.18;
+    // 常時の薄い信号揺らぎ。全面フィルターではなく、場所が毎回変わる細い横ズレだけを残す。
+    const microCell = Math.floor(ms / 95);
+    const microPhase = (ms % 95) / 95;
+    const microGate = 1 - Math.abs(microPhase * 2 - 1);
+    const microCount = 2 + Math.floor(hashNoise(microCell * 2.17) * 3);
+    for (let i = 0; i < microCount; i += 1) {
+      const seed = microCell * 17.31 + i * 29.73;
+      const bandY = Math.floor(hashNoise(seed + 0.8) * (CANVAS_H - 34));
+      const bandH = 2 + Math.floor(hashNoise(seed + 1.9) * 10);
+      const offset = signedNoise(seed + 3.1) * (4 + level * 30) * (0.35 + microGate * 0.65);
+      ctx.globalAlpha = (0.035 + level * 0.11) * (0.45 + microGate * 0.55);
       ctx.drawImage(ssEffectCanvas, 0, bandY, CANVAS_W, bandH, offset, bandY, CANVAS_W, bandH);
     }
 
-    const tearCount = 1 + Math.floor(level * 5);
-    for (let i = 0; i < tearCount; i += 1) {
-      const seed = ms * 0.018 + i * 31.9;
-      const bandY = Math.floor(hashNoise(seed + 3.7) * (CANVAS_H - 20));
-      const lineH = 1 + Math.floor(hashNoise(seed + 4.2) * 2);
-      ctx.save();
-      ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = 0.03 + level * 0.11;
-      ctx.fillStyle = hashNoise(seed + 4.8) > 0.45 ? "rgba(110,210,255,1)" : "rgba(255,120,120,1)";
-      ctx.fillRect(0, bandY, CANVAS_W, lineH);
-      ctx.restore();
-    }
+    // 0.32秒ごとの短い通信乱れ。発生位置・強さ・有無をセルごとに決めるため周期運動には見えない。
+    const burstCellMs = 320;
+    const burstCell = Math.floor(ms / burstCellMs);
+    const burstLocal = (ms % burstCellMs) / burstCellMs;
+    const burstSeed = burstCell * 41.371;
+    const burstEnabled = hashNoise(burstSeed + 0.2) > 0.48;
+    const burstEnvelope = burstLocal < 0.52
+      ? Math.sin(clamp01(burstLocal / 0.52) * Math.PI)
+      : 0;
 
-    ctx.save();
-    ctx.globalCompositeOperation = "screen";
-    ctx.globalAlpha = 0.02 + level * 0.08;
-    const scanY = (ms * 1.1) % (CANVAS_H + 120) - 60;
-    const scanGrad = ctx.createLinearGradient(0, scanY - 20, 0, scanY + 20);
-    scanGrad.addColorStop(0, "rgba(255,255,255,0)");
-    scanGrad.addColorStop(0.5, "rgba(210,235,255,1)");
-    scanGrad.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = scanGrad;
-    ctx.fillRect(0, scanY - 20, CANVAS_W, 40);
-    ctx.restore();
+    if (burstEnabled && burstEnvelope > 0.01) {
+      const strength = level * burstEnvelope;
+      const bandCount = 1 + Math.floor(hashNoise(burstSeed + 1.2) * 4);
+      for (let i = 0; i < bandCount; i += 1) {
+        const seed = burstSeed + i * 13.77;
+        const bandY = Math.floor(hashNoise(seed + 2.4) * (CANVAS_H - 90));
+        const bandH = 8 + Math.floor(hashNoise(seed + 3.6) * 48);
+        const offset = signedNoise(seed + 4.8) * (20 + strength * 180);
+        ctx.globalAlpha = 0.08 + strength * 0.30;
+        ctx.drawImage(ssEffectCanvas, 0, bandY, CANVAS_W, bandH, offset, bandY, CANVAS_W, bandH);
 
-    ctx.save();
-    ctx.globalAlpha = 0.010 + level * 0.030;
-    const block = 6;
-    for (let ny = 0; ny < CANVAS_H; ny += block) {
-      for (let nx = 0; nx < CANVAS_W; nx += block) {
-        const v = hashNoise(nx * 0.037 + ny * 0.051 + ms * 0.11);
-        if (v > 0.89) {
-          const c = Math.floor(110 + v * 145);
-          ctx.fillStyle = `rgba(${c},${c},${c},0.85)`;
-          ctx.fillRect(nx, ny, block, block);
+        // 同じ乱れ帯の端だけに、ごく細いシアン／赤の通信エラー線を出す。
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        ctx.globalAlpha = 0.06 + strength * 0.20;
+        ctx.fillStyle = hashNoise(seed + 5.9) > 0.5 ? "rgba(100,220,255,1)" : "rgba(255,105,125,1)";
+        const edgeY = hashNoise(seed + 6.4) > 0.5 ? bandY : bandY + bandH - 2;
+        ctx.fillRect(0, edgeY, CANVAS_W, 1 + Math.floor(hashNoise(seed + 7.1) * 2));
+        ctx.restore();
+      }
+
+      // 局所的なブロック欠損。画面全体を粗くせず、短時間・限定範囲だけ崩す。
+      const clusterCount = 1 + Math.floor(hashNoise(burstSeed + 8.3) * 3);
+      for (let c = 0; c < clusterCount; c += 1) {
+        const seed = burstSeed + c * 23.91;
+        const originX = Math.floor(hashNoise(seed + 9.1) * (CANVAS_W - 420));
+        const originY = Math.floor(hashNoise(seed + 10.2) * (CANVAS_H - 220));
+        const cols = 2 + Math.floor(hashNoise(seed + 11.4) * 4);
+        const rows = 1 + Math.floor(hashNoise(seed + 12.6) * 3);
+        const blockW = 42 + Math.floor(hashNoise(seed + 13.8) * 85);
+        const blockH = 8 + Math.floor(hashNoise(seed + 14.9) * 24);
+        for (let by = 0; by < rows; by += 1) {
+          for (let bx = 0; bx < cols; bx += 1) {
+            if (hashNoise(seed + bx * 3.7 + by * 5.1) < 0.34) continue;
+            const sx = originX + bx * blockW;
+            const sy = originY + by * (blockH + 3);
+            const jitter = signedNoise(seed + bx * 7.3 + by * 11.9) * (10 + strength * 70);
+            ctx.globalAlpha = 0.06 + strength * 0.22;
+            ctx.drawImage(ssEffectCanvas, sx, sy, blockW, blockH, sx + jitter, sy, blockW, blockH);
+          }
         }
       }
     }
-    ctx.restore();
+
+    // まれに一瞬だけ信号線を出す。上から下へ流さず、その場に出て消える。
+    const lineCell = Math.floor(ms / 210);
+    const lineSeed = lineCell * 57.19;
+    const lineAge = (ms % 210) / 210;
+    if (hashNoise(lineSeed + 0.7) > 0.82 && lineAge < 0.30) {
+      const lineY = Math.floor(hashNoise(lineSeed + 1.8) * CANVAS_H);
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = (1 - lineAge / 0.30) * (0.035 + level * 0.12);
+      ctx.fillStyle = hashNoise(lineSeed + 2.9) > 0.5 ? "rgba(120,220,255,1)" : "rgba(255,130,145,1)";
+      ctx.fillRect(0, lineY, CANVAS_W, 1);
+      ctx.restore();
+    }
 
     ctx.restore();
   }
